@@ -17,15 +17,18 @@ export default function Index() {
   const [results, setResults] = useState<GeneratedContent[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback(async () => {
     if (selectedProduct === null || !selectedPillar) return;
     setIsLoading(true);
-    // Simulate AI delay
-    setTimeout(() => {
-      const content = mockGenerate(products[selectedProduct], selectedPillar);
+    setResults([]);
+    try {
+      const content = await generateAllChannels(products[selectedProduct], selectedPillar);
       setResults(content);
+    } catch (e: any) {
+      toast.error(e.message || "Error al generar contenido");
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   }, [selectedProduct, selectedPillar, products]);
 
   const canGenerate = selectedProduct !== null && selectedPillar !== null;
