@@ -10,7 +10,7 @@ type Pillar = "ventas" | "comunidad" | "trafico";
 type Channel = "tiktok" | "instagram" | "email" | "meta" | "google";
 
 const SYSTEM_MASTER =
-  "Eres un Director Creativo experto en E-commerce de moda y retail con más de 15 años de experiencia. Tu tono es persuasivo, moderno y adaptado al mercado hispanohablante. Generas contenido que convierte, nunca genérico. Cada pieza debe sentirse escrita por un profesional de agencia top. Usa lenguaje natural, evita clichés y adapta el mensaje al canal específico.";
+  "Eres un Director Creativo experto en E-commerce de moda y retail con más de 15 años de experiencia. Tu tono es persuasivo, moderno y adaptado al mercado hispanohablante. Generas contenido que convierte, nunca genérico. Cada pieza debe sentirse escrita por un profesional de agencia top. Usa lenguaje natural, evita clichés y adapta el mensaje al canal específico. IMPORTANTE: Responde ÚNICAMENTE con el contenido solicitado. NO incluyas explicaciones, razonamientos, notas internas ni comentarios sobre tu proceso de pensamiento. Solo el copy/contenido final listo para usar.";
 
 const PILLAR_PROMPTS: Record<Pillar, string> = {
   ventas:
@@ -58,13 +58,22 @@ const CHANNEL_INSTRUCTIONS: Record<Channel, string> = {
 • Asegúrate de que los títulos y descripciones funcionen en cualquier combinación.`,
 };
 
+function cleanThinkingTokens(text: string): string {
+  // Remove <think>...</think> blocks and similar reasoning patterns
+  let cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, "");
+  cleaned = cleaned.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "");
+  cleaned = cleaned.replace(/<thought>[\s\S]*?<\/thought>/gi, "");
+  cleaned = cleaned.replace(/<internal>[\s\S]*?<\/internal>/gi, "");
+  return cleaned.trim();
+}
+
 function buildPrompt(
   product: { title: string; description: string; price: string },
   pillar: Pillar,
   channel: Channel
 ): { system: string; user: string } {
   const system = `${SYSTEM_MASTER}\n\n${PILLAR_PROMPTS[pillar]}`;
-  const user = `${CHANNEL_INSTRUCTIONS[channel]}\n\nProducto:\n- Nombre: ${product.title}\n- Descripción: ${product.description}\n- Precio: $${product.price}\n\nIMPORTANTE: Genera el contenido 100% en español. Sé creativo, específico para ESTE producto y directo. No uses plantillas genéricas. Cada palabra debe aportar valor.`;
+  const user = `${CHANNEL_INSTRUCTIONS[channel]}\n\nProducto:\n- Nombre: ${product.title}\n- Descripción: ${product.description}\n- Precio: $${product.price}\n\nIMPORTANTE: Genera SOLO el contenido final en español. NO incluyas explicaciones, razonamientos ni notas sobre tu proceso. Solo el copy listo para copiar y usar. Sé creativo, específico para ESTE producto y directo.`;
   return { system, user };
 }
 
@@ -100,7 +109,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: system },
           { role: "user", content: user },
@@ -132,7 +141,10 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
+    let content = data.choices?.[0]?.message?.content || "";
+    
+    // Clean any reasoning/thinking tokens from the response
+    content = cleanThinkingTokens(content);
 
     return new Response(
       JSON.stringify({ content, channel }),

@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
 import type { GeneratedContent } from "@/lib/content-generator";
+import type { ProductResults } from "@/lib/ai-client";
 
 interface ResultsTabsProps {
-  results: GeneratedContent[];
+  results: ProductResults[];
   isLoading: boolean;
 }
 
@@ -29,30 +30,19 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
-  if (isLoading) {
+function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
+  if (channels.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary" />
-        <p className="mt-4 text-sm text-muted-foreground">Generando contenido con IA...</p>
-      </div>
-    );
-  }
-
-  if (results.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <p className="text-sm text-muted-foreground">
-          Selecciona un producto y un pilar estratégico para generar contenido
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground py-4 text-center">
+        No se pudo generar contenido para este producto.
+      </p>
     );
   }
 
   return (
-    <Tabs defaultValue={results[0]?.channel} className="w-full">
+    <Tabs defaultValue={channels[0]?.channel} className="w-full">
       <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1">
-        {results.map((r) => (
+        {channels.map((r) => (
           <TabsTrigger
             key={r.channel}
             value={r.channel}
@@ -62,7 +52,7 @@ export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
           </TabsTrigger>
         ))}
       </TabsList>
-      {results.map((r) => (
+      {channels.map((r) => (
         <TabsContent key={r.channel} value={r.channel}>
           <Card className="border-border/50">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
@@ -78,5 +68,48 @@ export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
         </TabsContent>
       ))}
     </Tabs>
+  );
+}
+
+export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary" />
+        <p className="mt-4 text-sm text-muted-foreground">Generando contenido con IA para todos los canales...</p>
+      </div>
+    );
+  }
+
+  if (results.length === 0) return null;
+
+  if (results.length === 1) {
+    return (
+      <div className="space-y-4">
+        <h3 className="font-display text-lg font-semibold text-foreground">
+          {results[0].product.title}
+        </h3>
+        <ProductChannelResults channels={results[0].channels} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {results.map((productResult, idx) => (
+        <div key={idx} className="space-y-4">
+          <div className="flex items-center gap-3 border-b border-border/50 pb-2">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+              {idx + 1}
+            </span>
+            <h3 className="font-display text-lg font-semibold text-foreground">
+              {productResult.product.title}
+            </h3>
+            <span className="text-sm text-muted-foreground">${productResult.product.price}</span>
+          </div>
+          <ProductChannelResults channels={productResult.channels} />
+        </div>
+      ))}
+    </div>
   );
 }
