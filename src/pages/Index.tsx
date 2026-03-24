@@ -6,32 +6,42 @@ import { ProductGrid } from "@/components/ProductGrid";
 import { PillarSelector } from "@/components/PillarSelector";
 import { ResultsTabs } from "@/components/ResultsTabs";
 import type { ShopifyProduct } from "@/lib/shopify-parser";
-import { type Pillar, type GeneratedContent } from "@/lib/content-generator";
-import { generateAllChannels } from "@/lib/ai-client";
+import { type Pillar } from "@/lib/content-generator";
+import { generateForProducts, type ProductResults } from "@/lib/ai-client";
 import { toast } from "sonner";
 
 export default function Index() {
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
-  const [selectedProduct, setSelectedProduct] = useState<number | null>(null);
+  const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [selectedPillar, setSelectedPillar] = useState<Pillar | null>(null);
-  const [results, setResults] = useState<GeneratedContent[]>([]);
+  const [results, setResults] = useState<ProductResults[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleToggleProduct = useCallback((index: number) => {
+    setSelectedIndices((prev) =>
+      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
+    );
+  }, []);
+
   const handleGenerate = useCallback(async () => {
-    if (selectedProduct === null || !selectedPillar) return;
+    if (selectedIndices.length === 0 || !selectedPillar) return;
     setIsLoading(true);
     setResults([]);
     try {
-      const content = await generateAllChannels(products[selectedProduct], selectedPillar);
+      const selectedProducts = selectedIndices.map((i) => products[i]);
+      const content = await generateForProducts(selectedProducts, selectedPillar);
       setResults(content);
+      if (content.some((r) => r.errors.length > 0)) {
+        toast.warning("Algunos canales tuvieron errores, pero se generó contenido parcial.");
+      }
     } catch (e: any) {
       toast.error(e.message || "Error al generar contenido");
     } finally {
       setIsLoading(false);
     }
-  }, [selectedProduct, selectedPillar, products]);
+  }, [selectedIndices, selectedPillar, products]);
 
-  const canGenerate = selectedProduct !== null && selectedPillar !== null;
+  const canGenerate = selectedIndices.length > 0 && selectedPillar !== null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -71,23 +81,23 @@ export default function Index() {
           <FileUploader onProductsLoaded={setProducts} />
         </section>
 
-        {/* Step 2: Select product */}
+        {/* Step 2: Select products */}
         {products.length > 0 && (
           <section className="space-y-3 animate-fade-in">
             <StepHeader
               number={2}
-              title={`Selecciona un producto (${products.length} encontrados)`}
+              title={`Selecciona productos (${selectedIndices.length} de ${products.length} seleccionados)`}
             />
             <ProductGrid
               products={products}
-              selectedIndex={selectedProduct}
-              onSelect={setSelectedProduct}
+              selectedIndices={selectedIndices}
+              onToggle={handleToggleProduct}
             />
           </section>
         )}
 
         {/* Step 3: Select pillar */}
-        {selectedProduct !== null && (
+        {selectedIndices.length > 0 && (
           <section className="space-y-3 animate-fade-in">
             <StepHeader number={3} title="Elige tu pilar estratégico" />
             <PillarSelector selected={selectedPillar} onSelect={setSelectedPillar} />
@@ -105,7 +115,9 @@ export default function Index() {
               className="gap-2 px-8"
             >
               <Sparkles className="h-4 w-4" />
-              Generar Contenido
+              {isLoading
+                ? "Generando..."
+                : `Generar Contenido (${selectedIndices.length} producto${selectedIndices.length > 1 ? "s" : ""})`}
             </Button>
           </div>
         )}
