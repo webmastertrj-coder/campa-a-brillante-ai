@@ -31,6 +31,27 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
+function ProductHeader({ product }: { product: ShopifyProduct }) {
+  return (
+    <div className="flex items-center gap-4 rounded-lg border border-border/50 bg-muted/30 p-3">
+      {product.imageUrl && (
+        <img
+          src={product.imageUrl}
+          alt={product.title}
+          className="h-16 w-16 rounded-md object-cover"
+        />
+      )}
+      <div>
+        <h3 className="font-display text-lg font-semibold text-foreground">{product.title}</h3>
+        <p className="text-sm font-semibold text-primary">${product.price}</p>
+        {product.description && (
+          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{product.description}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
   if (channels.length === 0) {
     return (
