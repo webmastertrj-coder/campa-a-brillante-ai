@@ -31,6 +31,10 @@ async function generateForChannel(
   };
 }
 
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export async function generateForProducts(
   products: ShopifyProduct[],
   pillar: Pillar
@@ -38,19 +42,29 @@ export async function generateForProducts(
   const allResults: ProductResults[] = [];
 
   for (const product of products) {
-    const results = await Promise.allSettled(
-      ALL_CHANNELS.map((channel) => generateForChannel(product, pillar, channel))
-    );
-
     const channels: GeneratedContent[] = [];
     const errors: string[] = [];
 
-    for (const result of results) {
-      if (result.status === "fulfilled") {
-        channels.push(result.value);
-      } else {
-        errors.push(result.reason?.message || "Error desconocido");
+    for (const channel of ALL_CHANNELS) {
+      try {
+        const result = await generateForChannel(product, pillar, channel);
+        channels.push(result);
+      } catch (e: any) {
+        if (e.message?.includes("Límite de solicitudes") || e.message?.includes("429")) {
+          // Wait and retry once
+          await delay(3000);
+          try {
+            const result = await generateForChannel(product, pillar, channel);
+            channels.push(result);
+          } catch (retryError: any) {
+            errors.push(retryError.message || "Error desconocido");
+          }
+        } else {
+          errors.push(e.message || "Error desconocido");
+        }
       }
+      // Small delay between channels to avoid rate limiting
+      await delay(1500);
     }
 
     allResults.push({ product, channels, errors });
