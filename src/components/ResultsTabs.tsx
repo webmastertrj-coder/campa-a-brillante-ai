@@ -5,6 +5,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import type { GeneratedContent } from "@/lib/content-generator";
 import type { ProductResults } from "@/lib/ai-client";
+import type { ShopifyProduct } from "@/lib/shopify-parser";
 
 interface ResultsTabsProps {
   results: ProductResults[];
@@ -28,6 +29,27 @@ function CopyButton({ text }: { text: string }) {
       {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
       {copied ? "Copiado" : "Copiar"}
     </button>
+  );
+}
+
+function ProductHeader({ product }: { product: ShopifyProduct }) {
+  return (
+    <div className="flex items-center gap-4 rounded-lg border border-border/50 bg-muted/30 p-3">
+      {product.imageUrl && (
+        <img
+          src={product.imageUrl}
+          alt={product.title}
+          className="h-16 w-16 rounded-md object-cover"
+        />
+      )}
+      <div>
+        <h3 className="font-display text-lg font-semibold text-foreground">{product.title}</h3>
+        <p className="text-sm font-semibold text-primary">${product.price}</p>
+        {product.description && (
+          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{product.description}</p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -87,9 +109,7 @@ export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
   if (results.length === 1) {
     return (
       <div className="space-y-4">
-        <h3 className="font-display text-lg font-semibold text-foreground">
-          {results[0].product.title}
-        </h3>
+        <ProductHeader product={results[0].product} />
         <ProductChannelResults channels={results[0].channels} />
       </div>
     );
@@ -99,15 +119,7 @@ export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
     <div className="space-y-8">
       {results.map((productResult, idx) => (
         <div key={idx} className="space-y-4">
-          <div className="flex items-center gap-3 border-b border-border/50 pb-2">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              {idx + 1}
-            </span>
-            <h3 className="font-display text-lg font-semibold text-foreground">
-              {productResult.product.title}
-            </h3>
-            <span className="text-sm text-muted-foreground">${productResult.product.price}</span>
-          </div>
+          <ProductHeader product={productResult.product} />
           <ProductChannelResults channels={productResult.channels} />
         </div>
       ))}
