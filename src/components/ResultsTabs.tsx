@@ -87,9 +87,7 @@ export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
   if (results.length === 1) {
     return (
       <div className="space-y-4">
-        <h3 className="font-display text-lg font-semibold text-foreground">
-          {results[0].product.title}
-        </h3>
+        <ProductHeader product={results[0].product} />
         <ProductChannelResults channels={results[0].channels} />
       </div>
     );
