@@ -61,8 +61,8 @@ function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
               <CopyButton text={r.content} />
             </CardHeader>
             <CardContent>
-              <div className="whitespace-pre-wrap rounded-lg bg-muted/50 p-4 text-sm leading-relaxed text-foreground">
-                {r.content}
+              <div className="prose prose-sm dark:prose-invert max-w-none rounded-lg bg-muted/50 p-4 leading-relaxed text-foreground">
+                <ReactMarkdown>{r.content}</ReactMarkdown>
               </div>
             </CardContent>
           </Card>
