@@ -61,5 +61,32 @@ export function ProductGrid({ products, selectedIndices, onToggle }: ProductGrid
         );
       })}
     </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="gap-1"
+          >
+            <ChevronLeft className="h-4 w-4" /> Anterior
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Página {page + 1} de {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page === totalPages - 1}
+            className="gap-1"
+          >
+            Siguiente <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
