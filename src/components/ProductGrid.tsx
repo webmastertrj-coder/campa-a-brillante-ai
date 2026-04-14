@@ -1,6 +1,10 @@
+import { useState } from "react";
 import type { ShopifyProduct } from "@/lib/shopify-parser";
 import { Card, CardContent } from "@/components/ui/card";
-import { ImageIcon, Check } from "lucide-react";
+import { ImageIcon, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const PAGE_SIZE = 20;
 
 interface ProductGridProps {
   products: ShopifyProduct[];
@@ -9,9 +13,16 @@ interface ProductGridProps {
 }
 
 export function ProductGrid({ products, selectedIndices, onToggle }: ProductGridProps) {
+  const [page, setPage] = useState(0);
+  const totalPages = Math.ceil(products.length / PAGE_SIZE);
+  const start = page * PAGE_SIZE;
+  const visibleProducts = products.slice(start, start + PAGE_SIZE);
+
   return (
+    <div className="space-y-4">
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-      {products.map((product, idx) => {
+      {visibleProducts.map((product, localIdx) => {
+        const idx = start + localIdx;
         const isSelected = selectedIndices.includes(idx);
         return (
           <Card
@@ -49,6 +60,33 @@ export function ProductGrid({ products, selectedIndices, onToggle }: ProductGrid
           </Card>
         );
       })}
+    </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={page === 0}
+            className="gap-1"
+          >
+            <ChevronLeft className="h-4 w-4" /> Anterior
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            Página {page + 1} de {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={page === totalPages - 1}
+            className="gap-1"
+          >
+            Siguiente <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
