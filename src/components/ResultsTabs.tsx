@@ -119,15 +119,7 @@ export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
     <div className="space-y-8">
       {results.map((productResult, idx) => (
         <div key={idx} className="space-y-4">
-          <div className="flex items-center gap-3 border-b border-border/50 pb-2">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-              {idx + 1}
-            </span>
-            <h3 className="font-display text-lg font-semibold text-foreground">
-              {productResult.product.title}
-            </h3>
-            <span className="text-sm text-muted-foreground">${productResult.product.price}</span>
-          </div>
+          <ProductHeader product={productResult.product} />
           <ProductChannelResults channels={productResult.channels} />
         </div>
       ))}
