@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Copy, Check } from "lucide-react";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import type { GeneratedContent } from "@/lib/content-generator";
 import type { ProductResults } from "@/lib/ai-client";
 
