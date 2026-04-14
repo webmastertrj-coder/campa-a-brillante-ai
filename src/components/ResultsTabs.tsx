@@ -5,6 +5,7 @@ import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import type { GeneratedContent } from "@/lib/content-generator";
 import type { ProductResults } from "@/lib/ai-client";
+import type { ShopifyProduct } from "@/lib/shopify-parser";
 
 interface ResultsTabsProps {
   results: ProductResults[];
