@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { Sparkles, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FileUploader } from "@/components/FileUploader";
+import { StoreUrlInput } from "@/components/StoreUrlInput";
 import { ProductGrid } from "@/components/ProductGrid";
 import { PillarSelector } from "@/components/PillarSelector";
 import { ResultsTabs } from "@/components/ResultsTabs";
@@ -70,15 +70,15 @@ export default function Index() {
             <span className="text-gradient">campañas multicanal</span>
           </h1>
           <p className="mx-auto max-w-xl text-sm text-muted-foreground">
-            Sube tu catálogo de Shopify, elige una estrategia y genera contenido
+            Pega el link de tu tienda Shopify, elige una estrategia y genera contenido
             optimizado para todos tus canales en segundos.
           </p>
         </section>
 
         {/* Step 1: Upload */}
         <section className="space-y-3">
-          <StepHeader number={1} title="Sube tu catálogo de Shopify" />
-          <FileUploader onProductsLoaded={setProducts} />
+          <StepHeader number={1} title="Conecta tu tienda de Shopify" />
+          <StoreUrlInput onProductsLoaded={setProducts} />
         </section>
 
         {/* Step 2: Select products */}
