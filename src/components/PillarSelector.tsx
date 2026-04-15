@@ -25,22 +25,25 @@ export function PillarSelector({ selected, onSelect }: PillarSelectorProps) {
             <button
               key={key}
               onClick={() => onSelect(key)}
-              className={`group flex flex-col items-start gap-2 rounded-xl border p-4 text-left transition-all duration-200 ${
+              className={`group relative flex flex-col items-start gap-3 rounded-xl border p-5 text-left transition-all duration-200 ${
                 isActive
-                  ? "border-primary bg-primary/5 glow-electric"
-                  : "border-border hover:border-primary/40 hover:bg-muted/50"
+                  ? "border-primary bg-primary/5 shadow-md glow-electric"
+                  : "border-border/60 bg-card hover:border-primary/30 hover:shadow-sm"
               }`}
             >
+              {isActive && (
+                <div className="absolute top-3 right-3 h-2.5 w-2.5 rounded-full gradient-electric shadow-sm" />
+              )}
               <div
-                className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
-                  isActive ? "gradient-electric" : "bg-muted"
+                className={`flex h-10 w-10 items-center justify-center rounded-xl transition-all ${
+                  isActive ? "gradient-electric shadow-sm" : "bg-muted"
                 }`}
               >
-                <Icon className={`h-4 w-4 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
+                <Icon className={`h-5 w-5 ${isActive ? "text-primary-foreground" : "text-muted-foreground"}`} />
               </div>
               <div>
                 <p className="text-sm font-semibold text-foreground">{info.label}</p>
-                <p className="mt-0.5 text-xs text-muted-foreground leading-relaxed">{info.description}</p>
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">{info.description}</p>
               </div>
             </button>
           );

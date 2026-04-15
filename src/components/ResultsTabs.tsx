@@ -1,6 +1,6 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Sparkles } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import type { GeneratedContent } from "@/lib/content-generator";
@@ -24,30 +24,27 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground hover:shadow-sm"
     >
-      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-      {copied ? "Copiado" : "Copiar"}
+      {copied ? <Check className="h-3 w-3 text-primary" /> : <Copy className="h-3 w-3" />}
+      {copied ? "¡Copiado!" : "Copiar"}
     </button>
   );
 }
 
 function ProductHeader({ product }: { product: ShopifyProduct }) {
   return (
-    <div className="flex items-center gap-4 rounded-lg border border-border/50 bg-muted/30 p-3">
+    <div className="flex items-center gap-4 rounded-xl border border-border/40 bg-muted/30 p-4">
       {product.imageUrl && (
         <img
           src={product.imageUrl}
           alt={product.title}
-          className="h-16 w-16 rounded-md object-cover"
+          className="h-14 w-14 rounded-lg object-cover shadow-sm"
         />
       )}
-      <div>
-        <h3 className="font-display text-lg font-semibold text-foreground">{product.title}</h3>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-display text-base font-semibold text-foreground truncate">{product.title}</h3>
         <p className="text-sm font-semibold text-primary">${product.price}</p>
-        {product.description && (
-          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{product.description}</p>
-        )}
       </div>
     </div>
   );
@@ -56,7 +53,7 @@ function ProductHeader({ product }: { product: ShopifyProduct }) {
 function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
   if (channels.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground py-4 text-center">
+      <p className="text-sm text-muted-foreground py-6 text-center">
         No se pudo generar contenido para este producto.
       </p>
     );
@@ -64,12 +61,12 @@ function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
 
   return (
     <Tabs defaultValue={channels[0]?.channel} className="w-full">
-      <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/50 p-1">
+      <TabsList className="w-full flex-wrap h-auto gap-1 bg-muted/40 p-1 rounded-xl">
         {channels.map((r) => (
           <TabsTrigger
             key={r.channel}
             value={r.channel}
-            className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            className="text-xs rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
           >
             {r.label}
           </TabsTrigger>
@@ -77,13 +74,13 @@ function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
       </TabsList>
       {channels.map((r) => (
         <TabsContent key={r.channel} value={r.channel}>
-          <Card className="border-border/50">
+          <Card className="border-border/40 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between pb-3">
               <CardTitle className="text-base font-display">{r.label}</CardTitle>
               <CopyButton text={r.content} />
             </CardHeader>
             <CardContent>
-              <div className="prose prose-sm dark:prose-invert max-w-none rounded-lg bg-muted/50 p-4 leading-relaxed text-foreground">
+              <div className="prose prose-sm dark:prose-invert max-w-none rounded-xl bg-muted/30 p-5 leading-relaxed text-foreground">
                 <ReactMarkdown>{r.content}</ReactMarkdown>
               </div>
             </CardContent>
@@ -97,9 +94,15 @@ function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
 export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary" />
-        <p className="mt-4 text-sm text-muted-foreground">Generando contenido con IA para todos los canales...</p>
+      <div className="flex flex-col items-center justify-center py-16 gap-5">
+        <div className="relative">
+          <div className="h-12 w-12 animate-spin rounded-full border-4 border-muted border-t-primary" />
+          <Sparkles className="absolute inset-0 m-auto h-5 w-5 text-primary animate-pulse" />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-medium text-foreground">Generando contenido con IA...</p>
+          <p className="text-xs text-muted-foreground mt-1">Esto puede tomar unos segundos por canal</p>
+        </div>
       </div>
     );
   }
