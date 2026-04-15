@@ -34,7 +34,7 @@ export function ProductGrid({ products, selectedIndices, onToggle }: ProductGrid
                   : "hover:shadow-sm hover:border-primary/20"
               }`}
             >
-              <div className="relative aspect-square overflow-hidden bg-muted">
+              <div className="relative aspect-[3/4] overflow-hidden bg-muted/50 rounded-t-lg">
                 {isSelected && (
                   <div className="absolute inset-0 bg-primary/10 z-[5]" />
                 )}
@@ -47,7 +47,7 @@ export function ProductGrid({ products, selectedIndices, onToggle }: ProductGrid
                   <img
                     src={product.imageUrl}
                     alt={product.title}
-                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    className="h-full w-full object-contain p-2 transition-transform duration-300 group-hover:scale-105"
                     loading="lazy"
                   />
                 ) : (
