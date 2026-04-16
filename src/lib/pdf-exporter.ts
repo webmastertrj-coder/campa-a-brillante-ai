@@ -100,7 +100,7 @@ function drawProductHeader(cursor: PdfCursor, product: ShopifyProduct) {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(80);
-  const ref = (product as any).handle || (product as any).id || "—";
+  const ref = sanitizeFilename(product.title).toLowerCase() || "—";
   doc.text(
     `Precio: $${product.price}    ·    Ref: ${ref}`,
     MARGIN_X + 4,
