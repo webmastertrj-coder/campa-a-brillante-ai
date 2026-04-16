@@ -53,8 +53,8 @@ function sanitizeForPdf(input: string): string {
       .replace(/[\u201C\u201D\u2033]/g, '"')
       .replace(/[\u2013\u2014]/g, "-")
       .replace(/\u2026/g, "...")
-      // Drop any remaining non-Latin1 character that helvetica can't encode
-      .replace(/[^\x00-\xFF]/g, "")
+      // Drop any character outside our embedded font subset (Latin Basic + Latin-1 + Latin Ext-A)
+      .replace(/[^\u0020-\u007E\u00A0-\u017F·º°ª€™→•]/g, "")
       // Collapse repeated spaces left by removed glyphs
       .replace(/[ \t]{2,}/g, " ")
       .replace(/ +([.,;:!?])/g, "$1")
