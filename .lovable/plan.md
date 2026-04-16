@@ -1,49 +1,71 @@
 
+## Plan: Exportación a PDF del contenido generado
 
-# Diagnóstico y Plan: Reemplazar generación mock con IA real
+### Objetivo
+Permitir al usuario descargar el contenido generado por la IA en formato PDF, con texto seleccionable y copiable (no imagen), organizado por producto y canal.
 
-## El Problema
+### Enfoque técnico
 
-El contenido actual es **100% plantillas estáticas** (función `mockGenerate` en `Index.tsx`). Son textos hardcodeados que solo insertan el nombre y precio del producto. No hay inteligencia artificial involucrada — por eso el resultado es genérico, repetitivo y no refleja expertise de un Director Creativo real.
+Usaré **jsPDF** + **html2canvas** NO — eso genera imágenes. En su lugar:
 
-Los prompts expertos ya están configurados en `content-generator.ts` (función `buildPrompt`), pero **nunca se usan**. La función `mockGenerate` los ignora completamente.
+**Opción elegida: `jsPDF` con texto nativo** + soporte de markdown convertido a texto plano formateado. Esto garantiza texto seleccionable/copiable.
 
-## Solución
+Librería: `jspdf` (sin html2canvas). Para el formato:
+- Renderizo el contenido manualmente: títulos en negrita, párrafos, listas
+- Convierto el markdown a texto estructurado usando una librería ligera (`marked` ya está disponible vía react-markdown, o parseo simple)
+- Uso `doc.text()` que produce texto vectorial seleccionable
 
-Conectar la generación a **Lovable AI** (IA real) mediante una edge function que use los system prompts ya definidos. El contenido será único, contextual y de calidad profesional para cada producto y canal.
+### Cambios
 
-## Plan de implementación
+**1. Nueva utilidad `src/lib/pdf-exporter.ts`**
+- Función `exportToPDF(results: ProductResults[], pillar: string)` 
+- Por cada producto: encabezado con título + precio + referencia (SKU/handle)
+- Por cada canal: subtítulo del canal + contenido formateado
+- Conversión simple de markdown (negritas `**`, listas `-`, encabezados `#`) a texto formateado en jsPDF
+- Salto de página automático entre productos
+- Pie de página con marca AdsGenius AI y fecha
 
-### 1. Activar Lovable Cloud y crear edge function `generate-content`
+**2. Botones de exportación en `ResultsTabs.tsx`**
+- **Botón principal "Descargar PDF completo"** arriba de los resultados (cuando hay 1+ productos): exporta todo
+- **Botón pequeño "PDF" por canal individual**: junto al botón "Copiar" actual, exporta solo ese canal de ese producto
 
-- Edge function en `supabase/functions/generate-content/index.ts`
-- Recibe: `product` (título, descripción, precio), `pillar`, `channel`
-- Usa `buildPrompt()` del lado servidor para construir el prompt completo
-- Llama a Lovable AI Gateway con el modelo `google/gemini-3-flash-preview`
-- Devuelve el contenido generado como texto
-- Maneja errores 429 (rate limit) y 402 (sin créditos)
+**3. Mejora UX**
+- Toast de confirmación al descargar
+- Ícono `FileDown` de lucide-react
+- Estilo coherente con `variant="electric"` para el principal y `outline` para los individuales
 
-### 2. Crear cliente en el frontend
+### Estructura del PDF generado
 
-- Nuevo archivo `src/lib/ai-client.ts` con función `generateContent(product, pillar, channel)`
-- Llama a la edge function vía `supabase.functions.invoke()`
-- Genera contenido para los 5 canales en paralelo
+```text
+┌─────────────────────────────────────┐
+│ AdsGenius AI — Campaña [Pilar]      │
+│ Fecha: 16 Abr 2026                  │
+├─────────────────────────────────────┤
+│ ▶ PRODUCTO: Camisa Lino Blanca      │
+│   Precio: $120.000  Ref: camisa-01  │
+│                                     │
+│ ── Instagram ──                     │
+│ [contenido con negritas, listas]    │
+│                                     │
+│ ── TikTok ──                        │
+│ [contenido]                         │
+│                                     │
+│ ▶ PRODUCTO: Pantalón Beige          │
+│ ...                                 │
+└─────────────────────────────────────┘
+```
 
-### 3. Reemplazar `mockGenerate` en Index.tsx
+### Dependencias a añadir
+- `jspdf` (única dependencia nueva, ~150KB, sin html2canvas)
 
-- Eliminar la función `mockGenerate` completa
-- En `handleGenerate`, llamar a la edge function para cada canal
-- Mostrar loading real mientras se genera
-- Mostrar errores con toast si falla
+### Detalles técnicos del parser markdown → PDF
+- Línea por línea: detectar `**texto**` → `setFont('bold')` para ese segmento
+- Líneas que empiezan con `- ` o `* ` → bullet con indentación
+- Líneas con `#` → tamaño mayor + bold
+- Manejo de saltos de línea automáticos con `splitTextToSize()` de jsPDF
+- Control manual de posición Y con salto de página al pasar el margen inferior
 
-### 4. Mover prompts al backend
-
-- Duplicar la lógica de `buildPrompt`, `SYSTEM_MASTER`, `PILLAR_PROMPTS` y `CHANNEL_INSTRUCTIONS` dentro de la edge function para que los prompts no sean visibles en el cliente
-
-## Detalles técnicos
-
-- **Modelo**: `google/gemini-3-flash-preview` (rápido, buena calidad)
-- **5 llamadas paralelas** por generación (una por canal)
-- **Sin streaming** — se muestra el resultado completo cuando termina
-- Los prompts quedan protegidos en el backend
-
+### Archivos modificados
+- ✏️ `src/components/ResultsTabs.tsx` — añadir botones de exportación
+- 🆕 `src/lib/pdf-exporter.ts` — lógica de generación
+- ✏️ `package.json` — añadir `jspdf`
