@@ -121,7 +121,35 @@ function ProductChannelResults({
   );
 }
 
-export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
+function ExportAllButton({ results, pillar }: { results: ProductResults[]; pillar: Pillar | null }) {
+  const handleExport = () => {
+    try {
+      exportAllToPDF(results, pillar ?? "ventas");
+      toast.success("PDF descargado correctamente");
+    } catch {
+      toast.error("No se pudo generar el PDF");
+    }
+  };
+
+  const totalChannels = results.reduce((sum, r) => sum + r.channels.length, 0);
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-border/40 bg-gradient-to-r from-primary/5 to-transparent p-4">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground">Exporta tu campaña completa</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {results.length} producto{results.length !== 1 ? "s" : ""} · {totalChannels} pieza{totalChannels !== 1 ? "s" : ""} de contenido · Texto seleccionable
+        </p>
+      </div>
+      <Button onClick={handleExport} variant="electric" size="sm" className="shrink-0">
+        <FileDown className="h-4 w-4" />
+        Descargar PDF completo
+      </Button>
+    </div>
+  );
+}
+
+export function ResultsTabs({ results, isLoading, pillar }: ResultsTabsProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-5">
@@ -139,23 +167,21 @@ export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
 
   if (results.length === 0) return null;
 
-  if (results.length === 1) {
-    return (
-      <div className="space-y-4">
-        <ProductHeader product={results[0].product} />
-        <ProductChannelResults channels={results[0].channels} />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8">
-      {results.map((productResult, idx) => (
-        <div key={idx} className="space-y-4">
-          <ProductHeader product={productResult.product} />
-          <ProductChannelResults channels={productResult.channels} />
-        </div>
-      ))}
+    <div className="space-y-6">
+      <ExportAllButton results={results} pillar={pillar} />
+      <div className="space-y-8">
+        {results.map((productResult, idx) => (
+          <div key={idx} className="space-y-4">
+            <ProductHeader product={productResult.product} />
+            <ProductChannelResults
+              channels={productResult.channels}
+              product={productResult.product}
+              pillar={pillar}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
