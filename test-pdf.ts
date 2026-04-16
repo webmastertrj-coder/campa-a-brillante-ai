@@ -2,12 +2,15 @@ import { writeFileSync } from "fs";
 import { jsPDF } from "jspdf";
 import { exportAllToPDF } from "./src/lib/pdf-exporter.ts";
 
+const origSave = jsPDF.prototype.save;
 jsPDF.prototype.save = function (filename: string) {
   const buf = Buffer.from(this.output("arraybuffer"));
   writeFileSync("/tmp/test-output.pdf", buf);
   console.log("Saved", filename, "size:", buf.length);
+  return this;
 };
 
+console.log("starting");
 exportAllToPDF(
   [
     {
@@ -28,3 +31,4 @@ exportAllToPDF(
   ],
   "comunidad",
 );
+console.log("done");
