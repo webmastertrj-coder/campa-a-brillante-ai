@@ -1,6 +1,6 @@
 import { writeFileSync } from "fs";
 import { jsPDF } from "jspdf";
-import { exportAllToPDF } from "./src/lib/pdf-exporter";
+import { exportAllToPDF } from "./src/lib/pdf-exporter.ts";
 
 jsPDF.prototype.save = function (filename: string) {
   const buf = Buffer.from(this.output("arraybuffer"));
