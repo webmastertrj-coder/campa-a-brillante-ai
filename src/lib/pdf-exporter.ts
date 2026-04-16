@@ -126,7 +126,8 @@ function drawProductHeader(cursor: PdfCursor, product: ShopifyProduct) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(15, 23, 42);
-  const titleLines = doc.splitTextToSize(product.title, CONTENT_WIDTH - 8) as string[];
+  const safeTitle = sanitizeForPdf(product.title);
+  const titleLines = doc.splitTextToSize(safeTitle, CONTENT_WIDTH - 8) as string[];
   doc.text(titleLines[0], MARGIN_X + 4, cursor.y + 8);
 
   doc.setFont("helvetica", "normal");
@@ -151,7 +152,7 @@ function drawChannelHeader(cursor: PdfCursor, label: string) {
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.setTextColor(15, 23, 42);
-  doc.text(label.toUpperCase(), MARGIN_X + 6, cursor.y + 5);
+  doc.text(sanitizeForPdf(label).toUpperCase(), MARGIN_X + 6, cursor.y + 5);
   cursor.y += 10;
   doc.setTextColor(0);
 }
