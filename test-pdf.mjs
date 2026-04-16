@@ -1,43 +1,35 @@
-import { jsPDF } from "jspdf";
 import { writeFileSync } from "fs";
+// Stub jsPDF.save BEFORE importing the exporter so save writes to disk
+import { jsPDF } from "jspdf";
+jsPDF.prototype.save = function (filename) {
+  const buf = Buffer.from(this.output("arraybuffer"));
+  writeFileSync("/tmp/test-output.pdf", buf);
+  console.log("Saved", filename, "size:", buf.length);
+};
 
-function sanitizeForPdf(input) {
-  if (!input) return "";
-  return input
-    .replace(/[\u{1F300}-\u{1FAFF}]/gu, "")
-    .replace(/[\u{2600}-\u{27BF}]/gu, "")
-    .replace(/[\u{1F000}-\u{1F2FF}]/gu, "")
-    .replace(/[\u{FE00}-\u{FE0F}]/gu, "")
-    .replace(/[\u{1F1E6}-\u{1F1FF}]/gu, "")
-    .replace(/[\u200B-\u200F\u2028\u2029\uFEFF]/g, "")
-    .replace(/[\u200D\u20E3]/g, "")
-    .replace(/[\u00A0\u202F\u2009]/g, " ")
-    .replace(/[\u2018\u2019\u2032]/g, "'")
-    .replace(/[\u201C\u201D\u2033]/g, '"')
-    .replace(/[\u2013\u2014]/g, "-")
-    .replace(/\u2026/g, "...")
-    .replace(/[^\x00-\xFF]/g, "")
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/ +([.,;:!?])/g, "$1")
-    .trimEnd();
-}
+const { exportAllToPDF } = await import("/dev-server/src/lib/pdf-exporter.ts");
 
-const doc = new jsPDF({ unit: "mm", format: "a4" });
-doc.setFont("helvetica", "bold");
-doc.setFontSize(20);
-doc.text(sanitizeForPdf("AdsGenius AI"), 18, 30);
-doc.setFontSize(13);
-doc.text(sanitizeForPdf("Chaqueta Clásica Marca Trucco's"), 18, 45);
-doc.setFontSize(12);
-doc.text(sanitizeForPdf("TIKTOK / REELS"), 18, 60);
-doc.text(sanitizeForPdf("TÍTULOS:"), 18, 70);
-doc.setFont("helvetica", "normal");
-doc.setFontSize(10);
-doc.text(sanitizeForPdf('¿Tus outfits se sienten "meh"? ¡Ojo a esto! 👀'), 18, 85);
-doc.text(sanitizeForPdf("📲 Descubre la Chaqueta Clásica y transforma tus looks."), 18, 95);
-doc.setFont("helvetica", "bold");
-doc.text(sanitizeForPdf("DESCRIPCIONES:"), 18, 110);
+const results = [
+  {
+    product: { title: "Chaqueta Clásica Marca Trucco's", price: "156900.00", imageUrl: "" },
+    channels: [
+      {
+        channel: "tiktok",
+        label: "TikTok / Reels",
+        content: `**🎯 HOOK (0-3s)**\n¿Tus outfits se sienten "meh"? ¡Ojo a esto! 👀\n\n**📱 CUERPO (3-12s)**\n¡Pilas! La Chaqueta Clásica es otra cosa. Algodón suevecito 💫\n\n**🔥 CTA (12-15s)**\n¿Lista para transformar tu estilo? Chequéala hoy. ¡Te esperamos!\n\n**📝 NOTAS DE PRODUCCIÓN**\n- **Música:** Sonido de tendencia de TikTok, upbeat y moderno, sin letra.\n- **Efectos:** Sonidos de "whoosh" en las transiciones rápidas.\n- **Estilo Visual:** Tomas dinámicas — la modelo mostrando versatilidad.`,
+      },
+      {
+        channel: "instagram",
+        label: "Instagram / Facebook",
+        content: `¿Cansada de la misma rutina de vestir? ¡Esta chaqueta te va a cambiar el chip! 😏\n\nA veces solo se necesita una prenda para que el día dé un giro de 180 grados, ¿cierto?\n\n📲 Descubre la Chaqueta Clásica y transforma tus looks. REF: T12029114\n\n#ModaColombiana #ChaquetaClasica #EstiloConActitud`,
+      },
+      {
+        channel: "google",
+        label: "Google Ads",
+        content: `**TÍTULOS:**\n1. Chaqueta Clásica\n2. Estilo Femenino\n3. Trucco's Chaqueta\n\n**DESCRIPCIONES:**\n1. Algodón suave, corte perfecto. ¡Define tu estilo hoy mismo!\n2. Elegancia y comodidad. Tu chaqueta ideal, ¡compra ya!\n\n**KEYWORDS SUGERIDAS:**\n- Chaqueta Clásica Mujer\n- Trucco's Chaquetas\n- Chaqueta Algodón Mujer`,
+      },
+    ],
+  },
+];
 
-const buf = Buffer.from(doc.output("arraybuffer"));
-writeFileSync("/tmp/test-output.pdf", buf);
-console.log("Saved", buf.length);
+exportAllToPDF(results, "comunidad");
