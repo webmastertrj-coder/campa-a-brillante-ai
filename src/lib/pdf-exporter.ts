@@ -32,6 +32,7 @@ function sanitizeForPdf(input: string): string {
       .replace(/[\u{1F000}-\u{1F2FF}]/gu, "")
       .replace(/[\u{FE00}-\u{FE0F}]/gu, "") // variation selectors
       .replace(/[\u{1F1E6}-\u{1F1FF}]/gu, "") // regional indicators
+      .replace(/[\u200B-\u200F\u2028\u2029\uFEFF]/g, "") // zero-width / BOM / line/para sep
       .replace(/[\u200D\u20E3]/g, "") // ZWJ + keycap
       // Replace non-breaking/narrow spaces
       .replace(/[\u00A0\u202F\u2009]/g, " ")
