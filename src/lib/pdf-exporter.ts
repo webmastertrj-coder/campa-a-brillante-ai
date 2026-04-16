@@ -2,6 +2,18 @@ import { jsPDF } from "jspdf";
 import type { ProductResults } from "./ai-client";
 import type { GeneratedContent } from "./content-generator";
 import type { ShopifyProduct } from "./shopify-parser";
+import { InterRegularBase64, InterBoldBase64 } from "./pdf-fonts/inter";
+
+const FONT_FAMILY = "Inter";
+
+function registerFont(doc: jsPDF) {
+  doc.addFileToVFS("Inter-Regular.ttf", InterRegularBase64);
+  doc.addFont("Inter-Regular.ttf", FONT_FAMILY, "normal");
+  doc.addFileToVFS("Inter-Bold.ttf", InterBoldBase64);
+  doc.addFont("Inter-Bold.ttf", FONT_FAMILY, "bold");
+  doc.setFont(FONT_FAMILY, "normal");
+}
+
 
 // Layout constants (mm)
 const MARGIN_X = 18;
