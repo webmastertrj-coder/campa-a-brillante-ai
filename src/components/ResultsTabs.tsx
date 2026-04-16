@@ -1,15 +1,19 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Copy, Check, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Copy, Check, Sparkles, FileDown } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import type { GeneratedContent } from "@/lib/content-generator";
+import { toast } from "sonner";
+import type { GeneratedContent, Pillar } from "@/lib/content-generator";
 import type { ProductResults } from "@/lib/ai-client";
 import type { ShopifyProduct } from "@/lib/shopify-parser";
+import { exportAllToPDF, exportChannelToPDF } from "@/lib/pdf-exporter";
 
 interface ResultsTabsProps {
   results: ProductResults[];
   isLoading: boolean;
+  pillar: Pillar | null;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -50,7 +54,15 @@ function ProductHeader({ product }: { product: ShopifyProduct }) {
   );
 }
 
-function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
+function ProductChannelResults({
+  channels,
+  product,
+  pillar,
+}: {
+  channels: GeneratedContent[];
+  product: ShopifyProduct;
+  pillar: Pillar | null;
+}) {
   if (channels.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-6 text-center">
@@ -58,6 +70,15 @@ function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
       </p>
     );
   }
+
+  const handleChannelPdf = (ch: GeneratedContent) => {
+    try {
+      exportChannelToPDF(product, ch, pillar ?? "ventas");
+      toast.success(`PDF de ${ch.label} descargado`);
+    } catch {
+      toast.error("No se pudo generar el PDF");
+    }
+  };
 
   return (
     <Tabs defaultValue={channels[0]?.channel} className="w-full">
@@ -75,9 +96,18 @@ function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
       {channels.map((r) => (
         <TabsContent key={r.channel} value={r.channel}>
           <Card className="border-border/40 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 gap-2">
               <CardTitle className="text-base font-display">{r.label}</CardTitle>
-              <CopyButton text={r.content} />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleChannelPdf(r)}
+                  className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground hover:shadow-sm"
+                >
+                  <FileDown className="h-3 w-3" />
+                  PDF
+                </button>
+                <CopyButton text={r.content} />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm dark:prose-invert max-w-none rounded-xl bg-muted/30 p-5 leading-relaxed text-foreground">
@@ -91,7 +121,35 @@ function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
   );
 }
 
-export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
+function ExportAllButton({ results, pillar }: { results: ProductResults[]; pillar: Pillar | null }) {
+  const handleExport = () => {
+    try {
+      exportAllToPDF(results, pillar ?? "ventas");
+      toast.success("PDF descargado correctamente");
+    } catch {
+      toast.error("No se pudo generar el PDF");
+    }
+  };
+
+  const totalChannels = results.reduce((sum, r) => sum + r.channels.length, 0);
+
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-border/40 bg-gradient-to-r from-primary/5 to-transparent p-4">
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-foreground">Exporta tu campaña completa</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {results.length} producto{results.length !== 1 ? "s" : ""} · {totalChannels} pieza{totalChannels !== 1 ? "s" : ""} de contenido · Texto seleccionable
+        </p>
+      </div>
+      <Button onClick={handleExport} variant="electric" size="sm" className="shrink-0">
+        <FileDown className="h-4 w-4" />
+        Descargar PDF completo
+      </Button>
+    </div>
+  );
+}
+
+export function ResultsTabs({ results, isLoading, pillar }: ResultsTabsProps) {
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-5">
@@ -109,23 +167,21 @@ export function ResultsTabs({ results, isLoading }: ResultsTabsProps) {
 
   if (results.length === 0) return null;
 
-  if (results.length === 1) {
-    return (
-      <div className="space-y-4">
-        <ProductHeader product={results[0].product} />
-        <ProductChannelResults channels={results[0].channels} />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8">
-      {results.map((productResult, idx) => (
-        <div key={idx} className="space-y-4">
-          <ProductHeader product={productResult.product} />
-          <ProductChannelResults channels={productResult.channels} />
-        </div>
-      ))}
+    <div className="space-y-6">
+      <ExportAllButton results={results} pillar={pillar} />
+      <div className="space-y-8">
+        {results.map((productResult, idx) => (
+          <div key={idx} className="space-y-4">
+            <ProductHeader product={productResult.product} />
+            <ProductChannelResults
+              channels={productResult.channels}
+              product={productResult.product}
+              pillar={pillar}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

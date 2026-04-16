@@ -158,7 +158,7 @@ export default function Index() {
             isActive
             isComplete={results.length > 0 && !isLoading}
           >
-            <ResultsTabs results={results} isLoading={isLoading} />
+            <ResultsTabs results={results} isLoading={isLoading} pillar={selectedPillar} />
           </StepSection>
         )}
       </main>
