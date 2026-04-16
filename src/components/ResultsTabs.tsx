@@ -1,15 +1,19 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Copy, Check, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Copy, Check, Sparkles, FileDown } from "lucide-react";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import type { GeneratedContent } from "@/lib/content-generator";
+import { toast } from "sonner";
+import type { GeneratedContent, Pillar } from "@/lib/content-generator";
 import type { ProductResults } from "@/lib/ai-client";
 import type { ShopifyProduct } from "@/lib/shopify-parser";
+import { exportAllToPDF, exportChannelToPDF } from "@/lib/pdf-exporter";
 
 interface ResultsTabsProps {
   results: ProductResults[];
   isLoading: boolean;
+  pillar: Pillar | null;
 }
 
 function CopyButton({ text }: { text: string }) {
