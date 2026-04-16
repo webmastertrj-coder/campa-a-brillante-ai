@@ -363,6 +363,7 @@ export function exportChannelToPDF(
   pillar: string,
 ) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
+  registerFont(doc);
   const cursor: PdfCursor = { doc, y: MARGIN_TOP, page: 1 };
 
   drawFooter(cursor);
