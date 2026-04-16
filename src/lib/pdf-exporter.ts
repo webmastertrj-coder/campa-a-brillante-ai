@@ -291,7 +291,8 @@ function drawInlineSegments(cursor: PdfCursor, text: string, startX: number) {
 }
 
 function renderMarkdown(cursor: PdfCursor, markdown: string) {
-  const lines = markdown.split("\n");
+  const sanitized = sanitizeForPdf(markdown);
+  const lines = sanitized.split("\n");
   for (const line of lines) {
     renderMarkdownLine(cursor, line);
   }
