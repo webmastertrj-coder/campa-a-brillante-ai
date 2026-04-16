@@ -2,9 +2,10 @@ import { writeFileSync } from "fs";
 import { jsPDF } from "jspdf";
 import { exportAllToPDF } from "./src/lib/pdf-exporter.ts";
 
-const origSave = jsPDF.prototype.save;
-jsPDF.prototype.save = function (filename: string) {
-  const buf = Buffer.from(this.output("arraybuffer"));
+// Patch jsPDF.save to write to disk in Node
+(jsPDF.prototype as any).save = function (filename: string) {
+  const out = this.output("arraybuffer");
+  const buf = Buffer.from(out);
   writeFileSync("/tmp/test-output.pdf", buf);
   console.log("Saved", filename, "size:", buf.length);
   return this;
