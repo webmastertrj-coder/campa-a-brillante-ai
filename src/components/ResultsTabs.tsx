@@ -54,7 +54,15 @@ function ProductHeader({ product }: { product: ShopifyProduct }) {
   );
 }
 
-function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
+function ProductChannelResults({
+  channels,
+  product,
+  pillar,
+}: {
+  channels: GeneratedContent[];
+  product: ShopifyProduct;
+  pillar: Pillar | null;
+}) {
   if (channels.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-6 text-center">
@@ -62,6 +70,15 @@ function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
       </p>
     );
   }
+
+  const handleChannelPdf = (ch: GeneratedContent) => {
+    try {
+      exportChannelToPDF(product, ch, pillar ?? "ventas");
+      toast.success(`PDF de ${ch.label} descargado`);
+    } catch {
+      toast.error("No se pudo generar el PDF");
+    }
+  };
 
   return (
     <Tabs defaultValue={channels[0]?.channel} className="w-full">
@@ -79,9 +96,18 @@ function ProductChannelResults({ channels }: { channels: GeneratedContent[] }) {
       {channels.map((r) => (
         <TabsContent key={r.channel} value={r.channel}>
           <Card className="border-border/40 shadow-sm">
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 gap-2">
               <CardTitle className="text-base font-display">{r.label}</CardTitle>
-              <CopyButton text={r.content} />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleChannelPdf(r)}
+                  className="flex items-center gap-1.5 rounded-lg border border-border/60 bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-all hover:bg-muted hover:text-foreground hover:shadow-sm"
+                >
+                  <FileDown className="h-3 w-3" />
+                  PDF
+                </button>
+                <CopyButton text={r.content} />
+              </div>
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm dark:prose-invert max-w-none rounded-xl bg-muted/30 p-5 leading-relaxed text-foreground">
