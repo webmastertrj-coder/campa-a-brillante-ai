@@ -83,7 +83,7 @@ function ensureSpace(cursor: PdfCursor, needed: number) {
 
 function drawFooter(cursor: PdfCursor) {
   const { doc } = cursor;
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT_FAMILY, "normal");
   doc.setFontSize(8);
   doc.setTextColor(150);
   const today = new Date().toLocaleDateString("es-CO", {
@@ -105,13 +105,13 @@ function drawCoverHeader(cursor: PdfCursor, pillar: string) {
   doc.rect(0, 0, PAGE_WIDTH, 8, "F");
 
   cursor.y = MARGIN_TOP + 4;
-  doc.setFont("helvetica", "bold");
+  doc.setFont(FONT_FAMILY, "bold");
   doc.setFontSize(20);
   doc.setTextColor(15, 23, 42);
   doc.text("AdsGenius AI", MARGIN_X, cursor.y);
 
   cursor.y += 7;
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT_FAMILY, "normal");
   doc.setFontSize(11);
   doc.setTextColor(100);
   doc.text(
@@ -136,14 +136,14 @@ function drawProductHeader(cursor: PdfCursor, product: ShopifyProduct) {
   doc.setFillColor(243, 244, 246);
   doc.roundedRect(MARGIN_X, cursor.y, CONTENT_WIDTH, 22, 2, 2, "F");
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont(FONT_FAMILY, "bold");
   doc.setFontSize(13);
   doc.setTextColor(15, 23, 42);
   const safeTitle = sanitizeForPdf(product.title);
   const titleLines = doc.splitTextToSize(safeTitle, CONTENT_WIDTH - 8) as string[];
   doc.text(titleLines[0], MARGIN_X + 4, cursor.y + 8);
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT_FAMILY, "normal");
   doc.setFontSize(9);
   doc.setTextColor(80);
   const ref = sanitizeFilename(product.title).toLowerCase() || "—";
@@ -162,7 +162,7 @@ function drawChannelHeader(cursor: PdfCursor, label: string) {
   const { doc } = cursor;
   doc.setFillColor(37, 99, 235);
   doc.rect(MARGIN_X, cursor.y, 3, 6, "F");
-  doc.setFont("helvetica", "bold");
+  doc.setFont(FONT_FAMILY, "bold");
   doc.setFontSize(12);
   doc.setTextColor(15, 23, 42);
   doc.text(sanitizeForPdf(label).toUpperCase(), MARGIN_X + 6, cursor.y + 5);
@@ -191,7 +191,7 @@ function renderMarkdownLine(cursor: PdfCursor, rawLine: string) {
     const text = headingMatch[2];
     const size = level === 1 ? 13 : level === 2 ? 12 : 11;
     ensureSpace(cursor, 8);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(FONT_FAMILY, "bold");
     doc.setFontSize(size);
     doc.setTextColor(15, 23, 42);
     const wrapped = doc.splitTextToSize(text, CONTENT_WIDTH) as string[];
@@ -210,7 +210,7 @@ function renderMarkdownLine(cursor: PdfCursor, rawLine: string) {
   if (bulletMatch) {
     const text = bulletMatch[1];
     const indent = 5;
-    doc.setFont("helvetica", "normal");
+    doc.setFont(FONT_FAMILY, "normal");
     doc.setFontSize(10);
     const wrapped = doc.splitTextToSize(text, CONTENT_WIDTH - indent) as string[];
     for (let i = 0; i < wrapped.length; i++) {
@@ -225,7 +225,7 @@ function renderMarkdownLine(cursor: PdfCursor, rawLine: string) {
   }
 
   // Regular paragraph with potential **bold** segments
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT_FAMILY, "normal");
   doc.setFontSize(10);
   // Wrap the raw line first (without markup) — splitTextToSize doesn't know about **,
   // but we need to wrap correctly. Strip markers for measurement, then re-render with bold segments.
@@ -291,11 +291,11 @@ function drawSegmentedLine(cursor: PdfCursor, segs: Segment[], startX: number) {
   const { doc } = cursor;
   let x = startX;
   for (const s of segs) {
-    doc.setFont("helvetica", s.bold ? "bold" : "normal");
+    doc.setFont(FONT_FAMILY, s.bold ? "bold" : "normal");
     doc.text(s.text, x, cursor.y);
     x += doc.getTextWidth(s.text);
   }
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT_FAMILY, "normal");
 }
 
 function drawInlineSegments(cursor: PdfCursor, text: string, startX: number) {
@@ -336,7 +336,7 @@ export function exportAllToPDF(results: ProductResults[], pillar: string) {
     drawProductHeader(cursor, pr.product);
 
     if (pr.channels.length === 0) {
-      doc.setFont("helvetica", "italic");
+      doc.setFont(FONT_FAMILY, "normal");
       doc.setFontSize(10);
       doc.setTextColor(120);
       doc.text("No se generó contenido para este producto.", MARGIN_X, cursor.y);
