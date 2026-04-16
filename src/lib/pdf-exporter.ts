@@ -17,6 +17,38 @@ const PILLAR_LABELS: Record<string, string> = {
   trafico: "Tráfico y Awareness",
 };
 
+/**
+ * jsPDF's standard fonts (helvetica) only support WinAnsi encoding.
+ * Emojis and other non-Latin1 characters render as garbage glyphs (e.g. "Ø=ÜÝ").
+ * This function strips them while keeping Spanish accents (á, é, í, ó, ú, ñ, ¿, ¡, etc.).
+ */
+function sanitizeForPdf(input: string): string {
+  if (!input) return "";
+  return (
+    input
+      // Remove emoji ranges
+      .replace(/[\u{1F300}-\u{1FAFF}]/gu, "")
+      .replace(/[\u{2600}-\u{27BF}]/gu, "")
+      .replace(/[\u{1F000}-\u{1F2FF}]/gu, "")
+      .replace(/[\u{FE00}-\u{FE0F}]/gu, "") // variation selectors
+      .replace(/[\u{1F1E6}-\u{1F1FF}]/gu, "") // regional indicators
+      .replace(/[\u200D\u20E3]/g, "") // ZWJ + keycap
+      // Replace non-breaking/narrow spaces
+      .replace(/[\u00A0\u202F\u2009]/g, " ")
+      // Smart quotes / dashes → ASCII equivalents (Helvetica WinAnsi safe)
+      .replace(/[\u2018\u2019\u2032]/g, "'")
+      .replace(/[\u201C\u201D\u2033]/g, '"')
+      .replace(/[\u2013\u2014]/g, "-")
+      .replace(/\u2026/g, "...")
+      // Drop any remaining non-Latin1 character that helvetica can't encode
+      .replace(/[^\x00-\xFF]/g, "")
+      // Collapse repeated spaces left by removed glyphs
+      .replace(/[ \t]{2,}/g, " ")
+      .replace(/ +([.,;:!?])/g, "$1")
+      .trimEnd()
+  );
+}
+
 interface PdfCursor {
   doc: jsPDF;
   y: number;
