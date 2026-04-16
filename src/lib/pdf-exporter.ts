@@ -2,6 +2,18 @@ import { jsPDF } from "jspdf";
 import type { ProductResults } from "./ai-client";
 import type { GeneratedContent } from "./content-generator";
 import type { ShopifyProduct } from "./shopify-parser";
+import { InterRegularBase64, InterBoldBase64 } from "./pdf-fonts/inter";
+
+const FONT_FAMILY = "Inter";
+
+function registerFont(doc: jsPDF) {
+  doc.addFileToVFS("Inter-Regular.ttf", InterRegularBase64);
+  doc.addFont("Inter-Regular.ttf", FONT_FAMILY, "normal");
+  doc.addFileToVFS("Inter-Bold.ttf", InterBoldBase64);
+  doc.addFont("Inter-Bold.ttf", FONT_FAMILY, "bold");
+  doc.setFont(FONT_FAMILY, "normal");
+}
+
 
 // Layout constants (mm)
 const MARGIN_X = 18;
@@ -16,6 +28,39 @@ const PILLAR_LABELS: Record<string, string> = {
   comunidad: "Comunidad y Branding",
   trafico: "Tráfico y Awareness",
 };
+
+/**
+ * jsPDF's standard fonts (helvetica) only support WinAnsi encoding.
+ * Emojis and other non-Latin1 characters render as garbage glyphs (e.g. "Ø=ÜÝ").
+ * This function strips them while keeping Spanish accents (á, é, í, ó, ú, ñ, ¿, ¡, etc.).
+ */
+function sanitizeForPdf(input: string): string {
+  if (!input) return "";
+  return (
+    input
+      // Remove emoji ranges
+      .replace(/[\u{1F300}-\u{1FAFF}]/gu, "")
+      .replace(/[\u{2600}-\u{27BF}]/gu, "")
+      .replace(/[\u{1F000}-\u{1F2FF}]/gu, "")
+      .replace(/[\u{FE00}-\u{FE0F}]/gu, "") // variation selectors
+      .replace(/[\u{1F1E6}-\u{1F1FF}]/gu, "") // regional indicators
+      .replace(/[\u200B-\u200F\u2028\u2029\uFEFF]/g, "") // zero-width / BOM / line/para sep
+      .replace(/[\u200D\u20E3]/g, "") // ZWJ + keycap
+      // Replace non-breaking/narrow spaces
+      .replace(/[\u00A0\u202F\u2009]/g, " ")
+      // Smart quotes / dashes → ASCII equivalents (Helvetica WinAnsi safe)
+      .replace(/[\u2018\u2019\u2032]/g, "'")
+      .replace(/[\u201C\u201D\u2033]/g, '"')
+      .replace(/[\u2013\u2014]/g, "-")
+      .replace(/\u2026/g, "...")
+      // Drop any character outside our embedded font subset (Latin Basic + Latin-1 + Latin Ext-A)
+      .replace(/[^\u0020-\u007E\u00A0-\u017F·º°ª€™→•]/g, "")
+      // Collapse repeated spaces left by removed glyphs
+      .replace(/[ \t]{2,}/g, " ")
+      .replace(/ +([.,;:!?])/g, "$1")
+      .trimEnd()
+  );
+}
 
 interface PdfCursor {
   doc: jsPDF;
@@ -38,7 +83,7 @@ function ensureSpace(cursor: PdfCursor, needed: number) {
 
 function drawFooter(cursor: PdfCursor) {
   const { doc } = cursor;
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT_FAMILY, "normal");
   doc.setFontSize(8);
   doc.setTextColor(150);
   const today = new Date().toLocaleDateString("es-CO", {
@@ -60,13 +105,13 @@ function drawCoverHeader(cursor: PdfCursor, pillar: string) {
   doc.rect(0, 0, PAGE_WIDTH, 8, "F");
 
   cursor.y = MARGIN_TOP + 4;
-  doc.setFont("helvetica", "bold");
+  doc.setFont(FONT_FAMILY, "bold");
   doc.setFontSize(20);
   doc.setTextColor(15, 23, 42);
   doc.text("AdsGenius AI", MARGIN_X, cursor.y);
 
   cursor.y += 7;
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT_FAMILY, "normal");
   doc.setFontSize(11);
   doc.setTextColor(100);
   doc.text(
@@ -91,13 +136,14 @@ function drawProductHeader(cursor: PdfCursor, product: ShopifyProduct) {
   doc.setFillColor(243, 244, 246);
   doc.roundedRect(MARGIN_X, cursor.y, CONTENT_WIDTH, 22, 2, 2, "F");
 
-  doc.setFont("helvetica", "bold");
+  doc.setFont(FONT_FAMILY, "bold");
   doc.setFontSize(13);
   doc.setTextColor(15, 23, 42);
-  const titleLines = doc.splitTextToSize(product.title, CONTENT_WIDTH - 8) as string[];
+  const safeTitle = sanitizeForPdf(product.title);
+  const titleLines = doc.splitTextToSize(safeTitle, CONTENT_WIDTH - 8) as string[];
   doc.text(titleLines[0], MARGIN_X + 4, cursor.y + 8);
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT_FAMILY, "normal");
   doc.setFontSize(9);
   doc.setTextColor(80);
   const ref = sanitizeFilename(product.title).toLowerCase() || "—";
@@ -116,10 +162,10 @@ function drawChannelHeader(cursor: PdfCursor, label: string) {
   const { doc } = cursor;
   doc.setFillColor(37, 99, 235);
   doc.rect(MARGIN_X, cursor.y, 3, 6, "F");
-  doc.setFont("helvetica", "bold");
+  doc.setFont(FONT_FAMILY, "bold");
   doc.setFontSize(12);
   doc.setTextColor(15, 23, 42);
-  doc.text(label.toUpperCase(), MARGIN_X + 6, cursor.y + 5);
+  doc.text(sanitizeForPdf(label).toUpperCase(), MARGIN_X + 6, cursor.y + 5);
   cursor.y += 10;
   doc.setTextColor(0);
 }
@@ -145,7 +191,7 @@ function renderMarkdownLine(cursor: PdfCursor, rawLine: string) {
     const text = headingMatch[2];
     const size = level === 1 ? 13 : level === 2 ? 12 : 11;
     ensureSpace(cursor, 8);
-    doc.setFont("helvetica", "bold");
+    doc.setFont(FONT_FAMILY, "bold");
     doc.setFontSize(size);
     doc.setTextColor(15, 23, 42);
     const wrapped = doc.splitTextToSize(text, CONTENT_WIDTH) as string[];
@@ -164,7 +210,7 @@ function renderMarkdownLine(cursor: PdfCursor, rawLine: string) {
   if (bulletMatch) {
     const text = bulletMatch[1];
     const indent = 5;
-    doc.setFont("helvetica", "normal");
+    doc.setFont(FONT_FAMILY, "normal");
     doc.setFontSize(10);
     const wrapped = doc.splitTextToSize(text, CONTENT_WIDTH - indent) as string[];
     for (let i = 0; i < wrapped.length; i++) {
@@ -179,7 +225,7 @@ function renderMarkdownLine(cursor: PdfCursor, rawLine: string) {
   }
 
   // Regular paragraph with potential **bold** segments
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT_FAMILY, "normal");
   doc.setFontSize(10);
   // Wrap the raw line first (without markup) — splitTextToSize doesn't know about **,
   // but we need to wrap correctly. Strip markers for measurement, then re-render with bold segments.
@@ -245,11 +291,11 @@ function drawSegmentedLine(cursor: PdfCursor, segs: Segment[], startX: number) {
   const { doc } = cursor;
   let x = startX;
   for (const s of segs) {
-    doc.setFont("helvetica", s.bold ? "bold" : "normal");
+    doc.setFont(FONT_FAMILY, s.bold ? "bold" : "normal");
     doc.text(s.text, x, cursor.y);
     x += doc.getTextWidth(s.text);
   }
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT_FAMILY, "normal");
 }
 
 function drawInlineSegments(cursor: PdfCursor, text: string, startX: number) {
@@ -258,7 +304,8 @@ function drawInlineSegments(cursor: PdfCursor, text: string, startX: number) {
 }
 
 function renderMarkdown(cursor: PdfCursor, markdown: string) {
-  const lines = markdown.split("\n");
+  const sanitized = sanitizeForPdf(markdown);
+  const lines = sanitized.split("\n");
   for (const line of lines) {
     renderMarkdownLine(cursor, line);
   }
@@ -276,6 +323,7 @@ function sanitizeFilename(s: string): string {
 
 export function exportAllToPDF(results: ProductResults[], pillar: string) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
+  registerFont(doc);
   const cursor: PdfCursor = { doc, y: MARGIN_TOP, page: 1 };
 
   drawFooter(cursor);
@@ -289,7 +337,7 @@ export function exportAllToPDF(results: ProductResults[], pillar: string) {
     drawProductHeader(cursor, pr.product);
 
     if (pr.channels.length === 0) {
-      doc.setFont("helvetica", "italic");
+      doc.setFont(FONT_FAMILY, "normal");
       doc.setFontSize(10);
       doc.setTextColor(120);
       doc.text("No se generó contenido para este producto.", MARGIN_X, cursor.y);
@@ -315,6 +363,7 @@ export function exportChannelToPDF(
   pillar: string,
 ) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
+  registerFont(doc);
   const cursor: PdfCursor = { doc, y: MARGIN_TOP, page: 1 };
 
   drawFooter(cursor);
