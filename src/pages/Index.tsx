@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
-import { Sparkles, Zap, ArrowRight } from "lucide-react";
+import { Sparkles, Zap, ArrowRight, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { StoreUrlInput } from "@/components/StoreUrlInput";
 import { ProductGrid } from "@/components/ProductGrid";
 import { PillarSelector } from "@/components/PillarSelector";
@@ -14,6 +16,7 @@ export default function Index() {
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
   const [selectedIndices, setSelectedIndices] = useState<number[]>([]);
   const [selectedPillar, setSelectedPillar] = useState<Pillar | null>(null);
+  const [isUnified, setIsUnified] = useState(false);
   const [results, setResults] = useState<ProductResults[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,7 +42,24 @@ export default function Index() {
     setResults([]);
     try {
       const selectedProducts = selectedIndices.map((i) => products[i]);
-      const content = await generateForProducts(selectedProducts, selectedPillar);
+      
+      let targetProducts = selectedProducts;
+      if (isUnified && selectedProducts.length > 1) {
+        targetProducts = [{
+          id: "unified",
+          title: `Campaña Unificada (${selectedProducts.length} productos)`,
+          description: "Esta campaña única incluye los siguientes productos consolidados:\n\n" + selectedProducts.map(p => `• ${p.title} (Precio: $${p.price})\nDescripción: ${p.description}`).join("\n\n"),
+          price: "Varios",
+          imageUrl: selectedProducts[0].imageUrl,
+          url: selectedProducts[0].url,
+          tags: [],
+          type: "Catálogo",
+          vendor: selectedProducts[0].vendor,
+          metrics: { views: 0, addToCart: 0, purchases: 0 }
+        } as ShopifyProduct];
+      }
+
+      const content = await generateForProducts(targetProducts, selectedPillar);
       setResults(content);
       if (content.some((r) => r.errors.length > 0)) {
         toast.warning("Algunos canales tuvieron errores, pero se generó contenido parcial.");
@@ -49,7 +69,7 @@ export default function Index() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedIndices, selectedPillar, products]);
+  }, [selectedIndices, selectedPillar, products, isUnified]);
 
   const canGenerate = selectedIndices.length > 0 && selectedPillar !== null;
 
@@ -129,7 +149,27 @@ export default function Index() {
             isActive={currentStep >= 3}
             isComplete={selectedPillar !== null}
           >
-            <PillarSelector selected={selectedPillar} onSelect={setSelectedPillar} />
+            <div className="space-y-6">
+              <PillarSelector selected={selectedPillar} onSelect={setSelectedPillar} />
+              
+              {selectedIndices.length > 1 && (
+                <div className="flex items-center space-x-3 rounded-lg border border-border/50 bg-secondary/20 p-4 transition-all hover:bg-secondary/30">
+                  <Switch 
+                    id="unified-mode" 
+                    checked={isUnified}
+                    onCheckedChange={setIsUnified}
+                  />
+                  <div className="space-y-0.5 cursor-pointer" onClick={() => setIsUnified(!isUnified)}>
+                    <Label htmlFor="unified-mode" className="text-sm font-semibold cursor-pointer">
+                      Unificar productos en una sola campaña
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Si lo activas, la IA tomará los {selectedIndices.length} productos seleccionados y creará textos que los mencionen a todos al mismo tiempo. Recomendado para armar "outfits" o catálogos rápidos.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           </StepSection>
         )}
 
@@ -158,7 +198,22 @@ export default function Index() {
             isActive
             isComplete={results.length > 0 && !isLoading}
           >
-            <ResultsTabs results={results} isLoading={isLoading} pillar={selectedPillar} />
+            <div className="space-y-6">
+              <ResultsTabs results={results} isLoading={isLoading} pillar={selectedPillar} />
+              
+              {results.length > 0 && !isLoading && (
+                <div className="flex justify-center pt-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={handleGenerate} 
+                    className="gap-2.5 h-10 px-6 font-medium"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Regenerar Contenido
+                  </Button>
+                </div>
+              )}
+            </div>
           </StepSection>
         )}
       </main>
