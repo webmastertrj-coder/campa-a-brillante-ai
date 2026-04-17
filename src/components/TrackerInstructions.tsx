@@ -11,11 +11,15 @@ import { toast } from "sonner";
 const ENDPOINT = "https://frpybgmdzzaypliqjhjn.supabase.co/functions/v1/track-event";
 const SCRIPT_URL = `${window.location.origin}/shopify-tracker.js`;
 
-// Snippet INLINE para Custom Pixel (Shopify bloquea eval / new Function / fetch externo de scripts).
-// Usa solo la API analytics.subscribe + fetch nativo al endpoint.
-const PIXEL_SNIPPET = `// Pega esto en: Shopify Admin → Configuración → Eventos del cliente → Añadir píxel personalizado
-// Luego haz clic en "Conectar" para activarlo.
-const ENDPOINT = "${ENDPOINT}";
+const PIXEL_SNIPPET = `var ENDPOINT = "${ENDPOINT}";
+
+function getHost(event) {
+  try {
+    return event.context.document.location.host || "";
+  } catch (e) {
+    return "";
+  }
+}
 
 function send(payload) {
   try {
@@ -23,49 +27,53 @@ function send(payload) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-      keepalive: true,
-      mode: "no-cors",
-    }).catch(() => {});
+      keepalive: true
+    });
   } catch (e) {}
 }
 
-analytics.subscribe("product_viewed", (event) => {
-  const p = event?.data?.productVariant?.product;
+analytics.subscribe("product_viewed", function(event) {
+  var p = event && event.data && event.data.productVariant && event.data.productVariant.product;
   if (!p) return;
+
   send({
     event_type: "view",
-    shop_domain: event?.context?.document?.location?.host || "",
+    shop_domain: getHost(event),
     product_id: String(p.id || ""),
     product_handle: p.handle || null,
-    quantity: 1,
+    quantity: 1
   });
 });
 
-analytics.subscribe("product_added_to_cart", (event) => {
-  const line = event?.data?.cartLine;
-  const p = line?.merchandise?.product;
+analytics.subscribe("product_added_to_cart", function(event) {
+  var line = event && event.data && event.data.cartLine;
+  var p = line && line.merchandise && line.merchandise.product;
   if (!p) return;
+
   send({
     event_type: "add_to_cart",
-    shop_domain: event?.context?.document?.location?.host || "",
+    shop_domain: getHost(event),
     product_id: String(p.id || ""),
     product_handle: p.handle || null,
-    quantity: line?.quantity || 1,
+    quantity: (line && line.quantity) || 1
   });
 });
 
-analytics.subscribe("checkout_completed", (event) => {
-  const lines = event?.data?.checkout?.lineItems || [];
-  const host = event?.context?.document?.location?.host || "";
-  lines.forEach((line) => {
-    const p = line?.variant?.product;
+analytics.subscribe("checkout_completed", function(event) {
+  var checkout = event && event.data && event.data.checkout;
+  var lines = (checkout && checkout.lineItems) || [];
+  var host = getHost(event);
+
+  lines.forEach(function(line) {
+    var p = line && line.variant && line.variant.product;
     if (!p) return;
+
     send({
       event_type: "purchase",
       shop_domain: host,
       product_id: String(p.id || ""),
       product_handle: p.handle || null,
-      quantity: line.quantity || 1,
+      quantity: line.quantity || 1
     });
   });
 });`;
