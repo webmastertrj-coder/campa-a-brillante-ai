@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -22,6 +24,7 @@ Deno.serve(async (req) => {
     if (!storeUrl.startsWith("http")) {
       storeUrl = `https://${storeUrl}`;
     }
+    const cleanDomain = storeUrl.replace(/^https?:\/\//, "").toLowerCase();
 
     // Fetch products.json (Shopify exposes this publicly)
     const productsUrl = `${storeUrl}/products.json?limit=250`;
@@ -47,12 +50,49 @@ Deno.serve(async (req) => {
     const data = await response.json();
     const rawProducts = data.products || [];
 
-    const products = rawProducts.map((p: any) => ({
-      title: p.title || "",
-      description: stripHtml(p.body_html || ""),
-      price: p.variants?.[0]?.price || "0",
-      imageUrl: p.images?.[0]?.src || p.image?.src || "",
-    }));
+    // Fetch metrics from last 7 days for this shop
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data: metricsRows } = await supabase
+      .from("product_metrics")
+      .select("product_id, product_handle, event_type, quantity")
+      .eq("shop_domain", cleanDomain)
+      .gte("created_at", sevenDaysAgo);
+
+    // Aggregate: key by product_id OR handle
+    const agg = new Map<string, { views: number; addToCart: number; purchases: number }>();
+    for (const row of metricsRows || []) {
+      const keys = [row.product_id, row.product_handle].filter(Boolean) as string[];
+      for (const k of keys) {
+        const cur = agg.get(k) || { views: 0, addToCart: 0, purchases: 0 };
+        const q = row.quantity || 1;
+        if (row.event_type === "view") cur.views += q;
+        else if (row.event_type === "add_to_cart") cur.addToCart += q;
+        else if (row.event_type === "purchase") cur.purchases += q;
+        agg.set(k, cur);
+      }
+    }
+
+    const products = rawProducts.map((p: any) => {
+      const m = agg.get(String(p.id)) || agg.get(String(p.handle)) || { views: 0, addToCart: 0, purchases: 0 };
+      return {
+        id: String(p.id),
+        handle: p.handle || "",
+        title: p.title || "",
+        description: stripHtml(p.body_html || ""),
+        price: p.variants?.[0]?.price || "0",
+        imageUrl: p.images?.[0]?.src || p.image?.src || "",
+        metrics: {
+          views: m.views,
+          addToCart: m.addToCart,
+          purchases: m.purchases,
+          periodDays: 7,
+        },
+      };
+    });
 
     return new Response(JSON.stringify({ products }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
