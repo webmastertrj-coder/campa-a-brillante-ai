@@ -8,14 +8,67 @@ import {
 } from "@/components/ui/collapsible";
 import { toast } from "sonner";
 
+const ENDPOINT = "https://frpybgmdzzaypliqjhjn.supabase.co/functions/v1/track-event";
 const SCRIPT_URL = `${window.location.origin}/shopify-tracker.js`;
 
+// Snippet INLINE para Custom Pixel (Shopify bloquea eval / new Function / fetch externo de scripts).
+// Usa solo la API analytics.subscribe + fetch nativo al endpoint.
 const PIXEL_SNIPPET = `// Pega esto en: Shopify Admin → Configuración → Eventos del cliente → Añadir píxel personalizado
-(async () => {
-  const res = await fetch("${SCRIPT_URL}");
-  const code = await res.text();
-  new Function(code)();
-})();`;
+// Luego haz clic en "Conectar" para activarlo.
+const ENDPOINT = "${ENDPOINT}";
+
+function send(payload) {
+  try {
+    fetch(ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true,
+      mode: "no-cors",
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+analytics.subscribe("product_viewed", (event) => {
+  const p = event?.data?.productVariant?.product;
+  if (!p) return;
+  send({
+    event_type: "view",
+    shop_domain: event?.context?.document?.location?.host || "",
+    product_id: String(p.id || ""),
+    product_handle: p.handle || null,
+    quantity: 1,
+  });
+});
+
+analytics.subscribe("product_added_to_cart", (event) => {
+  const line = event?.data?.cartLine;
+  const p = line?.merchandise?.product;
+  if (!p) return;
+  send({
+    event_type: "add_to_cart",
+    shop_domain: event?.context?.document?.location?.host || "",
+    product_id: String(p.id || ""),
+    product_handle: p.handle || null,
+    quantity: line?.quantity || 1,
+  });
+});
+
+analytics.subscribe("checkout_completed", (event) => {
+  const lines = event?.data?.checkout?.lineItems || [];
+  const host = event?.context?.document?.location?.host || "";
+  lines.forEach((line) => {
+    const p = line?.variant?.product;
+    if (!p) return;
+    send({
+      event_type: "purchase",
+      shop_domain: host,
+      product_id: String(p.id || ""),
+      product_handle: p.handle || null,
+      quantity: line.quantity || 1,
+    });
+  });
+});`;
 
 const THEME_SNIPPET = `<!-- Pega esto en theme.liquid antes de </body> -->
 <script src="${SCRIPT_URL}" defer></script>`;
@@ -65,7 +118,7 @@ export function TrackerInstructions() {
 
           <SnippetBlock
             title="Opción 1 — Custom Pixel (recomendado)"
-            description="Sin tocar el código del tema. Configuración → Eventos del cliente → Añadir píxel personalizado."
+            description="Sin tocar el código del tema. Pega el código completo tal cual en el editor de píxel personalizado y haz clic en Conectar."
             code={PIXEL_SNIPPET}
             copied={copied === "pixel"}
             onCopy={() => copy("pixel", PIXEL_SNIPPET)}
@@ -104,7 +157,7 @@ function SnippetBlock({
         <p className="text-[11px] text-muted-foreground">{description}</p>
       </div>
       <div className="relative group">
-        <pre className="overflow-x-auto rounded-lg bg-foreground/[0.04] border border-border/50 p-3 text-[11px] font-mono leading-relaxed text-foreground/80">
+        <pre className="overflow-x-auto rounded-lg bg-foreground/[0.04] border border-border/50 p-3 text-[11px] font-mono leading-relaxed text-foreground/80 max-h-64">
           {code}
         </pre>
         <Button
