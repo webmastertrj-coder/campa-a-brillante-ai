@@ -1,4 +1,17 @@
-import { TrendingUp, Users, MousePointerClick } from "lucide-react";
+import { 
+  TrendingUp, 
+  Users, 
+  MousePointerClick,
+  BookOpen,
+  Target,
+  Zap,
+  Flame,
+  Star,
+  Rocket,
+  Crown,
+  Gift,
+  Video
+} from "lucide-react";
 import type { Pillar } from "@/lib/content-generator";
 import { PILLAR_INFO } from "@/lib/content-generator";
 
@@ -6,6 +19,15 @@ const ICONS = {
   TrendingUp,
   Users,
   MousePointerClick,
+  BookOpen,
+  Target,
+  Zap,
+  Flame,
+  Star,
+  Rocket,
+  Crown,
+  Gift,
+  Video
 };
 
 interface PillarSelectorProps {
