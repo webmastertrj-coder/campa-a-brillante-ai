@@ -9,6 +9,49 @@ import type { GeneratedContent, Pillar } from "@/lib/content-generator";
 import type { ProductResults } from "@/lib/ai-client";
 import type { ShopifyProduct } from "@/lib/shopify-parser";
 import { exportAllToPDF, exportChannelToPDF } from "@/lib/pdf-exporter";
+import { marked } from "marked";
+
+marked.setOptions({ breaks: true, gfm: true });
+
+async function copyRichText(markdown: string) {
+  const html = await marked.parse(markdown);
+  const styledHtml = `<div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; font-size: 14px; line-height: 1.6; white-space: normal;">${html}</div>`;
+  // Plain text fallback that preserves line breaks
+  const plain = markdown;
+
+  try {
+    if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) {
+      const item = new ClipboardItem({
+        "text/html": new Blob([styledHtml], { type: "text/html" }),
+        "text/plain": new Blob([plain], { type: "text/plain" }),
+      });
+      await navigator.clipboard.write([item]);
+      return;
+    }
+  } catch {
+    // fall through to legacy path
+  }
+
+  // Legacy fallback: use a contenteditable div + execCommand("copy")
+  const container = document.createElement("div");
+  container.contentEditable = "true";
+  container.style.position = "fixed";
+  container.style.left = "-9999px";
+  container.style.top = "0";
+  container.innerHTML = styledHtml;
+  document.body.appendChild(container);
+  const range = document.createRange();
+  range.selectNodeContents(container);
+  const selection = window.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  try {
+    document.execCommand("copy");
+  } finally {
+    selection?.removeAllRanges();
+    document.body.removeChild(container);
+  }
+}
 
 interface ResultsTabsProps {
   results: ProductResults[];
@@ -20,9 +63,14 @@ function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await copyRichText(text);
+      setCopied(true);
+      toast.success("Copiado con formato");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("No se pudo copiar");
+    }
   };
 
   return (
