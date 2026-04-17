@@ -63,9 +63,14 @@ function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await copyRichText(text);
+      setCopied(true);
+      toast.success("Copiado con formato");
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("No se pudo copiar");
+    }
   };
 
   return (
