@@ -74,7 +74,7 @@ export function ProductGrid({ products, selectedIndices, onToggle }: ProductGrid
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {visible.map(({ p: product, i: idx }) => {
           const isSelected = selectedIndices.includes(idx);
           const m = product.metrics;
@@ -111,27 +111,27 @@ export function ProductGrid({ products, selectedIndices, onToggle }: ProductGrid
                   </div>
                 )}
               </div>
-              <CardContent className="p-3 space-y-2">
+              <CardContent className="p-4 space-y-3">
                 <div>
-                  <p className="truncate text-sm font-medium text-foreground">{product.title}</p>
-                  <p className="mt-0.5 text-sm font-semibold text-primary">${product.price}</p>
+                  <p className="truncate text-base font-medium text-foreground">{product.title}</p>
+                  <p className="mt-1 text-base font-semibold text-primary">${product.price}</p>
                 </div>
                 {hasMetrics && (
-                  <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-border/50">
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground" title="Vistas (7d)">
-                      <Eye className="h-3 w-3" />
+                  <div className="flex items-center justify-between gap-2 pt-3 border-t border-border/50">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Vistas (7d)">
+                      <Eye className="h-4 w-4" />
                       <span className="tabular-nums font-medium text-foreground">
                         {showMetrics ? formatNumber(m!.views) : "0"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground" title="Añadidos al carrito (7d)">
-                      <ShoppingCart className="h-3 w-3" />
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Añadidos al carrito (7d)">
+                      <ShoppingCart className="h-4 w-4" />
                       <span className="tabular-nums font-medium text-foreground">
                         {showMetrics ? formatNumber(m!.addToCart) : "0"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground" title="Compras (7d)">
-                      <Package className="h-3 w-3" />
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground" title="Compras (7d)">
+                      <Package className="h-4 w-4" />
                       <span className="tabular-nums font-medium text-foreground">
                         {showMetrics ? formatNumber(m!.purchases) : "0"}
                       </span>
