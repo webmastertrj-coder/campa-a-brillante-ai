@@ -14,7 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      product_metrics: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          product_handle: string | null
+          product_id: string
+          quantity: number
+          shop_domain: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          product_handle?: string | null
+          product_id: string
+          quantity?: number
+          shop_domain: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          product_handle?: string | null
+          product_id?: string
+          quantity?: number
+          shop_domain?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
