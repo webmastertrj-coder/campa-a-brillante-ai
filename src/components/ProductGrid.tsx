@@ -28,16 +28,57 @@ interface ProductGridProps {
 
 export function ProductGrid({ products, selectedIndices, onToggle }: ProductGridProps) {
   const [page, setPage] = useState(0);
-  const totalPages = Math.ceil(products.length / PAGE_SIZE);
+  const [sortKey, setSortKey] = useState<SortKey>("default");
+
+  const hasMetrics = useMemo(
+    () => products.some((p) => p.metrics && (p.metrics.views || p.metrics.addToCart || p.metrics.purchases)),
+    [products]
+  );
+
+  const indexed = useMemo(() => products.map((p, i) => ({ p, i })), [products]);
+
+  const sorted = useMemo(() => {
+    if (sortKey === "default") return indexed;
+    return [...indexed].sort((a, b) => {
+      const av = a.p.metrics?.[sortKey] ?? 0;
+      const bv = b.p.metrics?.[sortKey] ?? 0;
+      return bv - av;
+    });
+  }, [indexed, sortKey]);
+
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
   const start = page * PAGE_SIZE;
-  const visibleProducts = products.slice(start, start + PAGE_SIZE);
+  const visible = sorted.slice(start, start + PAGE_SIZE);
 
   return (
     <div className="space-y-5">
+      {hasMetrics && (
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-xs text-muted-foreground">
+            Métricas de los <span className="font-medium text-foreground">últimos 7 días</span> desde tu tienda Shopify
+          </p>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
+            <Select value={sortKey} onValueChange={(v) => { setSortKey(v as SortKey); setPage(0); }}>
+              <SelectTrigger className="h-8 w-[180px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Orden original</SelectItem>
+                <SelectItem value="views">Más vistos</SelectItem>
+                <SelectItem value="addToCart">Más añadidos al carrito</SelectItem>
+                <SelectItem value="purchases">Más vendidos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {visibleProducts.map((product, localIdx) => {
-          const idx = start + localIdx;
+        {visible.map(({ p: product, i: idx }) => {
           const isSelected = selectedIndices.includes(idx);
+          const m = product.metrics;
+          const showMetrics = m && (m.views || m.addToCart || m.purchases);
           return (
             <Card
               key={idx}
@@ -70,9 +111,33 @@ export function ProductGrid({ products, selectedIndices, onToggle }: ProductGrid
                   </div>
                 )}
               </div>
-              <CardContent className="p-3">
-                <p className="truncate text-sm font-medium text-foreground">{product.title}</p>
-                <p className="mt-0.5 text-sm font-semibold text-primary">${product.price}</p>
+              <CardContent className="p-3 space-y-2">
+                <div>
+                  <p className="truncate text-sm font-medium text-foreground">{product.title}</p>
+                  <p className="mt-0.5 text-sm font-semibold text-primary">${product.price}</p>
+                </div>
+                {hasMetrics && (
+                  <div className="flex items-center justify-between gap-1 pt-1.5 border-t border-border/50">
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground" title="Vistas (7d)">
+                      <Eye className="h-3 w-3" />
+                      <span className="tabular-nums font-medium text-foreground">
+                        {showMetrics ? formatNumber(m!.views) : "0"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground" title="Añadidos al carrito (7d)">
+                      <ShoppingCart className="h-3 w-3" />
+                      <span className="tabular-nums font-medium text-foreground">
+                        {showMetrics ? formatNumber(m!.addToCart) : "0"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground" title="Compras (7d)">
+                      <Package className="h-3 w-3" />
+                      <span className="tabular-nums font-medium text-foreground">
+                        {showMetrics ? formatNumber(m!.purchases) : "0"}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
