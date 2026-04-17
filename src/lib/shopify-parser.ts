@@ -1,8 +1,18 @@
+export interface ProductMetrics {
+  views: number;
+  addToCart: number;
+  purchases: number;
+  periodDays: number;
+}
+
 export interface ShopifyProduct {
+  id?: string;
+  handle?: string;
   title: string;
   description: string;
   price: string;
   imageUrl: string;
+  metrics?: ProductMetrics;
 }
 
 function stripHtml(html: string): string {
