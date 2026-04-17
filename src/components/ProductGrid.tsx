@@ -1,8 +1,22 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { ShopifyProduct } from "@/lib/shopify-parser";
 import { Card, CardContent } from "@/components/ui/card";
-import { ImageIcon, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { ImageIcon, Check, ChevronLeft, ChevronRight, Eye, ShoppingCart, Package, ArrowUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+type SortKey = "default" | "views" | "addToCart" | "purchases";
+
+function formatNumber(n: number): string {
+  if (n >= 1000) return (n / 1000).toFixed(1).replace(/\.0$/, "") + "k";
+  return String(n);
+}
 
 const PAGE_SIZE = 20;
 
