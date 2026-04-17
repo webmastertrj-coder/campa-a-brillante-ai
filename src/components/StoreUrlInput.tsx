@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import type { ShopifyProduct } from "@/lib/shopify-parser";
+import { TrackerInstructions } from "@/components/TrackerInstructions";
 import { toast } from "sonner";
 
 interface StoreUrlInputProps {
