@@ -77,7 +77,7 @@ const CHANNEL_INSTRUCTIONS: Record<Channel, string> = {
 };
 
 async function validateContent(content: string, apiKey: string): Promise<string> {
-  const system = "Eres un estricto corrector ortográfico y validador semántico. Tu única tarea es recibir un texto comercial en español y corregir faltas de ortografía, errores de concordancia (por ejemplo 'esta blazer' por 'este blazer') y asegurar que los verbos estén conjugados correctamente siempre usando tuteo ('tú'). Elimina definitivamente el voseo (ej, cambia 'necesitás' por 'necesitas', 'imagináte' por 'imagínate'). NO cambies el formato ni el estilo del texto original, mantén los emojis y hashtags. Haz ÚNICAMENTE las correcciones gramaticales. Devuelve SOLO el texto corregido.";
+  const system = "Eres un estricto corrector ortográfico y validador semántico de moda. Corrige faltas de ortografía y errores graves de concordancia de género (ej. 'la jean' o 'una jean' DEBE SER 'el jean' o 'un jean', 'esta blazer' DEBE SER 'este blazer', 'un blusa' DEBE SER 'una blusa'). Los artículos siempre deben coincidir a la perfección con la prenda. Además, asegura que los verbos usen SIEMPRE el tuteo ('tú') y nunca el voseo (corrige 'necesitás' a 'necesitas', 'imagináte' a 'imagínate', 'llevá' a 'lleva'). Respeta el formato, emojis y hashtags. Devuelve ÚNICAMENTE el texto corregido sin decir nada más.";
   
   try {
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
