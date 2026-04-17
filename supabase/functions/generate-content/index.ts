@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-type Pillar = "ventas" | "comunidad" | "trafico";
+type Pillar = "ventas" | "comunidad" | "trafico" | "educacion" | "retargeting" | "descuentos" | "viral" | "testimonios" | "lanzamiento" | "fidelizacion" | "estacionalidad" | "detras_camaras";
 type Channel = "tiktok" | "instagram" | "email" | "meta" | "google";
 
 const SYSTEM_MASTER =
@@ -19,6 +19,24 @@ const PILLAR_PROMPTS: Record<Pillar, string> = {
     "Crea contenido de valor y storytelling auténtico. No vendas directamente. Habla de tendencias actuales, consejos de uso prácticos, behind-the-scenes y haz preguntas abiertas para generar comentarios y engagement real. El tono debe ser cercano, como un amigo que sabe de moda.",
   trafico:
     "Crea ganchos de curiosidad irresistibles. Usa listas, datos sorprendentes, preguntas retóricas y cliffhangers que obliguen al usuario a hacer clic en el enlace para ver más en la tienda online. Cada hook debe generar una necesidad inmediata de saber más.",
+  educacion:
+    "Crea contenido educativo que posicione a la marca como autoridad. Enseña a usar el producto, consejos de cuidado o por qué los materiales son los mejores. Usa un tono experto pero cercano.",
+  retargeting:
+    "Crea copys directos para recuperar carritos abandonados o visitantes previos. Usa frases como 'Sabemos que te encantó' o 'No dejes escapar esta oportunidad'. Enfócate en eliminar fricciones y ofrecer garantía o envío. El CTA debe ser urgente.",
+  descuentos:
+    "Crea contenido para una promoción agresiva de muy corto tiempo. Destaca el porcentaje de descuento y la escasez extrema (ej. Solo 24h, unidades muy limitadas).",
+  viral:
+    "Crea ideas y textos pensados para viralidad. Usa formatos de retos o memes. Prima el humor, la sorpresa y que el usuario quiera compartirlo con sus amigos.",
+  testimonios:
+    "Copia enfocada en prueba social. Redacta el contenido como si fuera el testimonio de un cliente satisfecho o resalta cómo el producto le resolvió un problema real. Finaliza invitando a más personas a probarlo.",
+  lanzamiento:
+    "Contenido de tipo 'Teaser'. Genera intriga y expectativa sobre un nuevo producto o colección. No reveles todo de inmediato. Invita a suscribirse o estar atentos a la fecha.",
+  fidelizacion:
+    "Crea un copy exclusivo para clientes frecuentes. Hazles sentir especiales, agradéceles su lealtad y dales acceso anticipado o un beneficio extra. Tono muy cálido y exclusivo.",
+  estacionalidad:
+    "Crea una campaña basada en una fecha especial (ej. Día de la Madre, Regalos, Navidad). Adapta el mensaje al espíritu de esa temporada, resaltando por qué el producto es la opción perfecta.",
+  detras_camaras:
+    "Contenido de 'Behind the scenes'. Relata de forma transparente el esfuerzo humano, los procesos de fabricación o el equipo detrás de los productos. Genera empatía y conexión emocional.",
 };
 
 const CHANNEL_INSTRUCTIONS: Record<Channel, string> = {
@@ -57,6 +75,35 @@ const CHANNEL_INSTRUCTIONS: Record<Channel, string> = {
 • 🔑 KEYWORDS SUGERIDAS: 5 keywords relevantes para la campaña
 • Asegúrate de que los títulos y descripciones funcionen en cualquier combinación.`,
 };
+
+async function validateContent(content: string, apiKey: string): Promise<string> {
+  const system = "Eres un estricto corrector ortográfico y validador semántico. Tu única tarea es recibir un texto comercial en español y corregir faltas de ortografía, errores de concordancia (por ejemplo 'esta blazer' por 'este blazer') y asegurar que los verbos estén conjugados correctamente siempre usando tuteo ('tú'). Elimina definitivamente el voseo (ej, cambia 'necesitás' por 'necesitas', 'imagináte' por 'imagínate'). NO cambies el formato ni el estilo del texto original, mantén los emojis y hashtags. Haz ÚNICAMENTE las correcciones gramaticales. Devuelve SOLO el texto corregido.";
+  
+  try {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: `Corrige este texto sin decir nada más que el texto corregido:\n\n${content}` },
+        ],
+      }),
+    });
+
+    if (!response.ok) return content;
+    const data = await response.json();
+    let validatedOut = data.choices?.[0]?.message?.content || content;
+    return validatedOut;
+  } catch (e) {
+    return content;
+  }
+}
+
 
 function cleanThinkingTokens(text: string): string {
   // Remove <think>...</think> blocks and similar reasoning patterns
@@ -145,6 +192,10 @@ serve(async (req) => {
     
     // Clean any reasoning/thinking tokens from the response
     content = cleanThinkingTokens(content);
+
+    // Run semantic validation to fix grammar, tuteo and misspellings
+    content = await validateContent(content, LOVABLE_API_KEY);
+    content = cleanThinkingTokens(content); // Clean again just in case
 
     return new Response(
       JSON.stringify({ content, channel }),
