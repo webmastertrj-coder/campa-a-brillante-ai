@@ -36,29 +36,80 @@ Deno.serve(async (req) => {
     }
     const rootUrl = `https://${cleanDomain}`;
 
-    // Fetch products.json from the STORE ROOT (Shopify exposes this publicly)
-    const productsUrl = `${rootUrl}/products.json?limit=250`;
-    const response = await fetch(productsUrl, {
-      headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; AdsGeniusAI/1.0)",
-        "Accept": "application/json",
-      },
-    });
+    // Detect URL type so we can fetch the right scope:
+    //  - /collections/{handle}         → just that collection
+    //  - /collections/{handle}/products/{p} or /products/{p} → just that product
+    //  - anything else (root, /pages/*) → full catalog
+    const fetchHeaders = {
+      "User-Agent": "Mozilla/5.0 (compatible; AdsGeniusAI/1.0)",
+      "Accept": "application/json",
+    };
+    let pathname = "";
+    try { pathname = new URL(storeUrl).pathname; } catch { /* noop */ }
 
-    if (!response.ok) {
+    const productMatch = pathname.match(/\/products\/([^\/?#]+)/i);
+    const collectionMatch = pathname.match(/\/collections\/([^\/?#]+)/i);
+
+    let rawProducts: any[] = [];
+    let fetchedFrom = "store";
+
+    async function fetchAllPaginated(baseUrl: string): Promise<any[]> {
+      const all: any[] = [];
+      for (let page = 1; page <= 10; page++) { // safety cap: 2,500 products
+        const sep = baseUrl.includes("?") ? "&" : "?";
+        const r = await fetch(`${baseUrl}${sep}limit=250&page=${page}`, { headers: fetchHeaders });
+        if (!r.ok) {
+          if (page === 1) throw new Error(`HTTP ${r.status}`);
+          break;
+        }
+        const j = await r.json();
+        const arr = j.products || [];
+        all.push(...arr);
+        if (arr.length < 250) break;
+      }
+      return all;
+    }
+
+    try {
+      if (productMatch) {
+        // Single product
+        const handle = productMatch[1];
+        const r = await fetch(`${rootUrl}/products/${handle}.json`, { headers: fetchHeaders });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const j = await r.json();
+        rawProducts = j.product ? [j.product] : [];
+        fetchedFrom = `product:${handle}`;
+      } else if (collectionMatch) {
+        // Collection products
+        const handle = collectionMatch[1];
+        rawProducts = await fetchAllPaginated(`${rootUrl}/collections/${handle}/products.json`);
+        fetchedFrom = `collection:${handle}`;
+      } else {
+        // Whole store
+        rawProducts = await fetchAllPaginated(`${rootUrl}/products.json`);
+        fetchedFrom = "store";
+      }
+    } catch (e: any) {
       return new Response(
         JSON.stringify({
-          error: `No se pudo acceder a la tienda. Verifica que la URL sea correcta y que la tienda sea pública. (${response.status})`,
+          error: `No se pudo acceder a la tienda o colección. Verifica que la URL sea correcta y que sea pública. (${e?.message || "error"})`,
         }),
-        {
-          status: 422,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const data = await response.json();
-    const rawProducts = data.products || [];
+    if (rawProducts.length === 0) {
+      return new Response(
+        JSON.stringify({
+          error: collectionMatch
+            ? `La colección "${collectionMatch[1]}" no tiene productos públicos o no existe.`
+            : "No se encontraron productos en esta tienda.",
+        }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`fetch-shopify-products: ${cleanDomain} (${fetchedFrom}) → ${rawProducts.length} products`);
 
     // Fetch metrics from last 7 days for this shop
     const supabase = createClient(
