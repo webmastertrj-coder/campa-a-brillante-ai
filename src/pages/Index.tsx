@@ -51,12 +51,8 @@ export default function Index() {
           description: "Esta campaña única incluye los siguientes productos consolidados:\n\n" + selectedProducts.map(p => `• ${p.title} (Precio: $${p.price})\nDescripción: ${p.description}`).join("\n\n"),
           price: "Varios",
           imageUrl: selectedProducts[0].imageUrl,
-          url: selectedProducts[0].url,
-          tags: [],
-          type: "Catálogo",
-          vendor: selectedProducts[0].vendor,
-          metrics: { views: 0, addToCart: 0, purchases: 0 }
-        } as ShopifyProduct];
+          metrics: { views: 0, addToCart: 0, purchases: 0, periodDays: 7 },
+        } satisfies ShopifyProduct];
       }
 
       const content = await generateForProducts(targetProducts, selectedPillar);
