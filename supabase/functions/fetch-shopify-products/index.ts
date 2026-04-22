@@ -24,7 +24,14 @@ Deno.serve(async (req) => {
     if (!storeUrl.startsWith("http")) {
       storeUrl = `https://${storeUrl}`;
     }
-    const cleanDomain = storeUrl.replace(/^https?:\/\//, "").toLowerCase();
+    // Extract ONLY the hostname (no path/query) so it matches what the
+    // Shopify pixel sends from window.location.hostname / Shopify.shop.
+    let cleanDomain = "";
+    try {
+      cleanDomain = new URL(storeUrl).hostname.toLowerCase();
+    } catch {
+      cleanDomain = storeUrl.replace(/^https?:\/\//, "").split("/")[0].toLowerCase();
+    }
 
     // Fetch products.json (Shopify exposes this publicly)
     const productsUrl = `${storeUrl}/products.json?limit=250`;
