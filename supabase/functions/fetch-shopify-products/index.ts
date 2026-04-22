@@ -24,17 +24,20 @@ Deno.serve(async (req) => {
     if (!storeUrl.startsWith("http")) {
       storeUrl = `https://${storeUrl}`;
     }
-    // Extract ONLY the hostname (no path/query) so it matches what the
-    // Shopify pixel sends from window.location.hostname / Shopify.shop.
+    // Extract ONLY the hostname (no path/query) so:
+    //  1) /products.json is always queried on the store root (works even if
+    //     the user pastes /collections/xxx, /pages/xxx, /products/xxx, etc.)
+    //  2) it matches what the Shopify pixel sends (window.location.hostname).
     let cleanDomain = "";
     try {
       cleanDomain = new URL(storeUrl).hostname.toLowerCase();
     } catch {
       cleanDomain = storeUrl.replace(/^https?:\/\//, "").split("/")[0].toLowerCase();
     }
+    const rootUrl = `https://${cleanDomain}`;
 
-    // Fetch products.json (Shopify exposes this publicly)
-    const productsUrl = `${storeUrl}/products.json?limit=250`;
+    // Fetch products.json from the STORE ROOT (Shopify exposes this publicly)
+    const productsUrl = `${rootUrl}/products.json?limit=250`;
     const response = await fetch(productsUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (compatible; AdsGeniusAI/1.0)",
