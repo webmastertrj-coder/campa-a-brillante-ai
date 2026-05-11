@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Sparkles, Zap, ArrowRight, RefreshCw } from "lucide-react";
+import { Sparkles, Zap, ArrowRight, RefreshCw, FolderOpen, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,8 @@ import { StoreUrlInput } from "@/components/StoreUrlInput";
 import { ProductGrid } from "@/components/ProductGrid";
 import { PillarSelector } from "@/components/PillarSelector";
 import { ResultsTabs } from "@/components/ResultsTabs";
+import { SaveToProjectDialog } from "@/components/SaveToProjectDialog";
+import { ProjectsManager } from "@/components/ProjectsManager";
 import type { ShopifyProduct } from "@/lib/shopify-parser";
 import { type Pillar } from "@/lib/content-generator";
 import { generateForProducts, type ProductResults } from "@/lib/ai-client";
@@ -19,6 +21,7 @@ export default function Index() {
   const [isUnified, setIsUnified] = useState(false);
   const [results, setResults] = useState<ProductResults[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [saveOpen, setSaveOpen] = useState(false);
 
   const currentStep = products.length === 0
     ? 1
@@ -82,9 +85,14 @@ export default function Index() {
               AdsGenius <span className="text-gradient">AI</span>
             </span>
           </div>
-          <p className="hidden text-xs text-muted-foreground sm:block">
-            Automatización de marketing con IA
-          </p>
+          <ProjectsManager
+            trigger={
+              <Button variant="outline" size="sm" className="gap-2">
+                <FolderOpen className="h-4 w-4" />
+                Mis proyectos
+              </Button>
+            }
+          />
         </div>
       </header>
 
@@ -198,7 +206,15 @@ export default function Index() {
               <ResultsTabs results={results} isLoading={isLoading} pillar={selectedPillar} />
               
               {results.length > 0 && !isLoading && (
-                <div className="flex justify-center pt-2">
+                <div className="flex flex-wrap justify-center gap-3 pt-2">
+                  <Button
+                    variant="electric"
+                    onClick={() => setSaveOpen(true)}
+                    className="gap-2.5 h-10 px-6 font-medium"
+                  >
+                    <Save className="h-4 w-4" />
+                    Guardar en proyectos
+                  </Button>
                   <Button 
                     variant="outline" 
                     onClick={handleGenerate} 
@@ -213,6 +229,13 @@ export default function Index() {
           </StepSection>
         )}
       </main>
+
+      <SaveToProjectDialog
+        open={saveOpen}
+        onOpenChange={setSaveOpen}
+        results={results}
+        pillar={selectedPillar}
+      />
 
       {/* Footer */}
       <footer className="border-t border-border/40 py-8 mt-16">
