@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       product_metrics: {
         Row: {
           created_at: string
@@ -43,6 +61,44 @@ export type Database = {
           shop_domain?: string
         }
         Relationships: []
+      }
+      projects: {
+        Row: {
+          content: Json
+          created_at: string
+          folder_id: string | null
+          id: string
+          pillar: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          pillar?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          pillar?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
