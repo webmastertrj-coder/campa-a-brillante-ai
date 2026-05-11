@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Folder as FolderIcon, FolderPlus, Trash2, FileText, ArrowLeft, Eye } from "lucide-react";
+import { Folder as FolderIcon, FolderPlus, Trash2, FileText, ArrowLeft, Eye, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import {
   createFolder,
@@ -39,7 +39,8 @@ export function ProjectsManager({ trigger }: Props) {
       ]);
       setFolders(f);
       setProjects(p);
-    } catch {
+    } catch (e) {
+      console.error("ProjectsManager refresh error", e);
       toast.error("No se pudieron cargar los proyectos");
     } finally {
       setLoading(false);
@@ -93,9 +94,23 @@ export function ProjectsManager({ trigger }: Props) {
       <SheetTrigger asChild>{trigger}</SheetTrigger>
       <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader>
-          <SheetTitle className="font-display">
-            {viewing ? viewing.title : "Mis proyectos"}
-          </SheetTitle>
+          <div className="flex items-center justify-between gap-2">
+            <SheetTitle className="font-display">
+              {viewing ? viewing.title : "Mis proyectos"}
+            </SheetTitle>
+            {!viewing && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refresh}
+                disabled={loading}
+                className="gap-1.5"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+                Actualizar
+              </Button>
+            )}
+          </div>
         </SheetHeader>
 
         {viewing ? (
